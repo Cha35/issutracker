@@ -99,6 +99,7 @@ def render_market_card(m, idx):
         <span class="target-badge" style="background:{target_color}">{target}</span>
         <span class="score">{stars}</span>
         <button class="lock-btn" onclick="toggleLock({idx}, this)" title="잠금 시 동기화해도 유지됨">🔓</button>
+        <button class="reject-btn" onclick="openRejectModal({idx})" title="이 마켓 제외 (사유 입력)">✕</button>
       </div>
       <div class="card-body">
         <p class="question">{question}</p>
@@ -257,6 +258,31 @@ def generate_html(issues, markets, history):
   .lock-btn {{ margin-left: auto; background: none; border: 1px solid #E2E8F0; border-radius: 6px; padding: 2px 8px; cursor: pointer; font-size: 14px; transition: all 0.15s; color: #94A3B8; white-space: nowrap; }}
   .lock-btn:hover {{ background: #FEF3C7; border-color: #F59E0B; }}
   .lock-btn.locked {{ background: #FEF3C7; border-color: #F59E0B; }}
+  .reject-btn {{ background: none; border: 1px solid #E2E8F0; border-radius: 6px; padding: 2px 8px; cursor: pointer; font-size: 13px; transition: all 0.15s; color: #CBD5E1; white-space: nowrap; font-weight: 700; }}
+  .reject-btn:hover {{ background: #FEF2F2; border-color: #FCA5A5; color: #EF4444; }}
+  .market-card.rejected {{ opacity: 0.35; filter: grayscale(60%); }}
+  .market-card.rejected .card-body {{ pointer-events: none; }}
+  .rejected-overlay {{ display: none; position: absolute; inset: 0; background: rgba(239,68,68,0.06); border-radius: 12px; align-items: center; justify-content: center; flex-direction: column; gap: 4px; pointer-events: none; }}
+  .market-card.rejected .rejected-overlay {{ display: flex; }}
+  .rejected-label {{ font-size: 12px; font-weight: 700; color: #EF4444; background: white; padding: 3px 10px; border-radius: 20px; border: 1px solid #FCA5A5; }}
+  .rejected-reason {{ font-size: 11px; color: #94A3B8; max-width: 85%; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
+  /* 거절 모달 */
+  .modal-backdrop {{ display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; }}
+  .modal-backdrop.open {{ display: flex; }}
+  .modal {{ background: white; border-radius: 16px; padding: 28px; width: 460px; max-width: 90vw; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }}
+  .modal h3 {{ font-size: 16px; font-weight: 700; color: #1E293B; margin-bottom: 6px; }}
+  .modal .modal-question {{ font-size: 13px; color: #64748B; background: #F8FAFC; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; line-height: 1.5; border-left: 3px solid #E2E8F0; }}
+  .modal label {{ font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 8px; }}
+  .reject-reasons {{ display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }}
+  .reason-chip {{ padding: 5px 12px; border-radius: 20px; border: 1px solid #E2E8F0; background: white; font-size: 12px; color: #64748B; cursor: pointer; transition: all 0.15s; }}
+  .reason-chip:hover, .reason-chip.selected {{ background: #FEE2E2; border-color: #FCA5A5; color: #DC2626; font-weight: 600; }}
+  .modal textarea {{ width: 100%; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 12px; font-size: 13px; color: #374151; resize: vertical; min-height: 72px; font-family: inherit; outline: none; box-sizing: border-box; }}
+  .modal textarea:focus {{ border-color: #EF4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }}
+  .modal-footer {{ display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }}
+  .btn-cancel {{ padding: 8px 18px; border: 1px solid #E2E8F0; border-radius: 8px; background: white; color: #64748B; cursor: pointer; font-size: 13px; font-weight: 500; }}
+  .btn-cancel:hover {{ background: #F8FAFC; }}
+  .btn-reject {{ padding: 8px 18px; border: none; border-radius: 8px; background: #EF4444; color: white; cursor: pointer; font-size: 13px; font-weight: 600; }}
+  .btn-reject:hover {{ background: #DC2626; }}
   .card-body {{ padding: 14px 16px; }}
   .question {{ font-size: 14px; font-weight: 600; color: #1E293B; margin-bottom: 10px; line-height: 1.5; }}
   .options {{ display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }}
@@ -376,6 +402,31 @@ def generate_html(issues, markets, history):
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- 거절 모달 -->
+<div class="modal-backdrop" id="rejectBackdrop" onclick="closeRejectModal(event)">
+  <div class="modal">
+    <h3>🚫 마켓 제외</h3>
+    <div class="modal-question" id="rejectQuestion"></div>
+    <label>제외 사유 선택 (복수 선택 가능)</label>
+    <div class="reject-reasons">
+      <span class="reason-chip" onclick="toggleReasonChip(this)">이미 지난 이슈</span>
+      <span class="reason-chip" onclick="toggleReasonChip(this)">결과가 이미 알려진 내용</span>
+      <span class="reason-chip" onclick="toggleReasonChip(this)">마켓 매력도 낮음</span>
+      <span class="reason-chip" onclick="toggleReasonChip(this)">타겟과 맞지 않음</span>
+      <span class="reason-chip" onclick="toggleReasonChip(this)">선택지가 부적절</span>
+      <span class="reason-chip" onclick="toggleReasonChip(this)">정보가 부정확함</span>
+      <span class="reason-chip" onclick="toggleReasonChip(this)">민감한 주제</span>
+      <span class="reason-chip" onclick="toggleReasonChip(this)">유사 마켓 이미 존재</span>
+    </div>
+    <label>추가 메모 (선택)</label>
+    <textarea id="rejectMemo" placeholder="구체적인 사유나 개선 방향을 입력하세요..."></textarea>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeRejectModal(null)">취소</button>
+      <button class="btn-reject" onclick="confirmReject()">제외하기</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ── 데이터 ──────────────────────────────────────────
@@ -649,6 +700,114 @@ function toggleApplied(date, idx, checked) {{
   loadHistoryDate(date);
 }}
 
+// ── 거절(제외) 시스템 ────────────────────────────────
+var REJECT_KEY = 'polyball_rejected_idxs';
+var _rejectTargetIdx = null;
+
+function getRejectedMap() {{
+  try {{ return JSON.parse(localStorage.getItem(REJECT_KEY) || '{{}}'); }}
+  catch(e) {{ return {{}}; }}
+}}
+function saveRejectedMap(map) {{
+  try {{ localStorage.setItem(REJECT_KEY, JSON.stringify(map)); }}
+  catch(e) {{}}
+}}
+
+function openRejectModal(idx) {{
+  _rejectTargetIdx = idx;
+  var market = MARKETS_DATA[idx];
+  if (!market) return;
+  document.getElementById('rejectQuestion').textContent = market.question || '';
+  document.getElementById('rejectMemo').value = '';
+  document.querySelectorAll('.reason-chip').forEach(function(c) {{ c.classList.remove('selected'); }});
+  document.getElementById('rejectBackdrop').classList.add('open');
+  setTimeout(function() {{ document.getElementById('rejectMemo').focus(); }}, 100);
+}}
+
+function closeRejectModal(e) {{
+  if (e && e.target !== document.getElementById('rejectBackdrop')) return;
+  document.getElementById('rejectBackdrop').classList.remove('open');
+  _rejectTargetIdx = null;
+}}
+
+function toggleReasonChip(el) {{
+  el.classList.toggle('selected');
+}}
+
+function confirmReject() {{
+  var idx = _rejectTargetIdx;
+  if (idx === null || idx === undefined) return;
+
+  var chips = document.querySelectorAll('.reason-chip.selected');
+  var reasons = Array.from(chips).map(function(c) {{ return c.textContent; }});
+  var memo = document.getElementById('rejectMemo').value.trim();
+  if (memo) reasons.push(memo);
+  if (reasons.length === 0) {{
+    reasons.push('사유 미입력');
+  }}
+
+  // 카드 UI 업데이트
+  var card = document.getElementById('mcard-' + idx);
+  if (card) {{
+    card.classList.add('rejected');
+    // 잠금 해제
+    card.classList.remove('locked');
+    var lockBtn = card.querySelector('.lock-btn');
+    if (lockBtn) {{ lockBtn.classList.remove('locked'); lockBtn.textContent = '🔓'; }}
+    // 거절 오버레이 추가 (없으면)
+    if (!card.querySelector('.rejected-overlay')) {{
+      var overlay = document.createElement('div');
+      overlay.className = 'rejected-overlay';
+      overlay.innerHTML = '<span class="rejected-label">제외됨</span><span class="rejected-reason">' + reasons[0] + '</span>';
+      card.appendChild(overlay);
+    }}
+    var rej = card.querySelector('.rejected-reason');
+    if (rej) rej.textContent = reasons.join(' · ');
+  }}
+
+  // localStorage 저장
+  var map = getRejectedMap();
+  var market = MARKETS_DATA[idx] || {{}};
+  var now = new Date();
+  var ts = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  map[idx] = {{ reasons: reasons, memo: memo, rejected_at: ts }};
+  saveRejectedMap(map);
+
+  // 서버 저장 (로컬 모드)
+  if (IS_LOCAL) {{
+    var payload = Object.assign({{}}, market, {{
+      rejected_reasons: reasons,
+      rejected_memo: memo,
+      rejected_at: ts
+    }});
+    fetch('/api/rejects', {{
+      method: 'POST',
+      headers: {{'Content-Type': 'application/json'}},
+      body: JSON.stringify(payload)
+    }}).catch(function(e) {{}});
+  }}
+
+  closeRejectModal(null);
+  showToast('제외 처리됐습니다');
+}}
+
+function restoreRejectedUI() {{
+  var map = getRejectedMap();
+  Object.keys(map).forEach(function(idx) {{
+    var card = document.getElementById('mcard-' + idx);
+    if (!card) return;
+    card.classList.add('rejected');
+    var info = map[idx];
+    var reasons = info.reasons || [];
+    if (!card.querySelector('.rejected-overlay')) {{
+      var overlay = document.createElement('div');
+      overlay.className = 'rejected-overlay';
+      overlay.innerHTML = '<span class="rejected-label">제외됨</span><span class="rejected-reason">' + reasons.join(' · ') + '</span>';
+      card.appendChild(overlay);
+    }}
+  }});
+}}
+
 // ── 초기화 ───────────────────────────────────────────
 function init() {{
   try {{
@@ -663,6 +822,9 @@ function init() {{
       restoreLockUI();
     }}
   }} catch(e) {{ console.warn('lock restore error:', e); }}
+
+  // 거절 상태 복원
+  try {{ restoreRejectedUI(); }} catch(e) {{ console.warn('reject restore error:', e); }}
 
   // 히스토리 첫 날짜 자동 로드
   try {{

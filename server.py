@@ -13,6 +13,7 @@ from datetime import datetime
 app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOCKED_PATH = os.path.join(BASE_DIR, "locked_markets.json")
+REJECTED_PATH = os.path.join(BASE_DIR, "rejected_markets.json")
 SYNC_STATUS = {
     "running": False,
     "last": "없음",
@@ -88,6 +89,29 @@ def sync():
 @app.route("/api/sync/status")
 def sync_status():
     return jsonify(SYNC_STATUS)
+
+
+@app.route("/api/rejects", methods=["GET", "POST"])
+def rejects():
+    if request.method == "POST":
+        data = request.get_json(force=True)
+        # 기존 거절 목록 불러와서 누적
+        existing = []
+        if os.path.exists(REJECTED_PATH):
+            with open(REJECTED_PATH, encoding="utf-8") as f:
+                existing = json.load(f)
+        # 동일 question 중복 방지
+        questions = {r.get("question", "") for r in existing}
+        if data.get("question", "") not in questions:
+            existing.append(data)
+            with open(REJECTED_PATH, "w", encoding="utf-8") as f:
+                json.dump(existing, f, ensure_ascii=False, indent=2)
+        return jsonify({"ok": True, "total": len(existing)})
+    # GET: 거절 목록 반환
+    if os.path.exists(REJECTED_PATH):
+        with open(REJECTED_PATH, encoding="utf-8") as f:
+            return jsonify(json.load(f))
+    return jsonify([])
 
 
 @app.route("/api/sync/log")
