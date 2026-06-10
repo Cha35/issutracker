@@ -87,8 +87,13 @@ def render_market_card(m, idx):
     # 마켓 데이터를 data 속성으로 저장 (잠금용)
     q_escaped = m.get("question", "").replace('"', '&quot;').replace("'", "&#39;")
 
+    question = m.get('question', '').replace('<', '&lt;').replace('>', '&gt;')
+    rationale = m.get('rationale', '').replace('<', '&lt;').replace('>', '&gt;')
+    title_attr = issue_title.replace('"', '&quot;')
+
     return f"""
     <div class="market-card" data-type="{mtype}" data-score="{score}" data-sourcetype="{source_type}" data-idx="{idx}" id="mcard-{idx}">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid {color}">
         <span class="type-badge" style="background:{color}">{type_ko}</span>
         <span class="target-badge" style="background:{target_color}">{target}</span>
@@ -96,13 +101,13 @@ def render_market_card(m, idx):
         <button class="lock-btn" onclick="toggleLock({idx}, this)" title="잠금 시 동기화해도 유지됨">🔓</button>
       </div>
       <div class="card-body">
-        <p class="question">{m.get('question', '')}</p>
+        <p class="question">{question}</p>
         <div class="options">{options_html}</div>
         <div class="source-row">
-          <span class="source-title" title="{issue_title}">{short_title}</span>
+          <span class="source-title" title="{title_attr}">{short_title}</span>
           {link_html}
         </div>
-        <p class="rationale">{m.get('rationale', '')}</p>
+        <p class="rationale">{rationale}</p>
       </div>
     </div>"""
 
@@ -381,72 +386,76 @@ const TYPE_KO = {type_ko_js};
 const IS_LOCAL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
 // ── 토스트 ──────────────────────────────────────────
-function showToast(msg, duration = 2500) {{
-  const t = document.getElementById('toast');
+function showToast(msg, duration) {{
+  if (duration === undefined) duration = 2500;
+  var t = document.getElementById('toast');
+  if (!t) return;
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), duration);
+  setTimeout(function() {{ t.classList.remove('show'); }}, duration);
 }}
 
 // ── 페이지 전환 ──────────────────────────────────────
 function showPage(name, btn) {{
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(function(p) {{ p.classList.remove('active'); }});
+  document.querySelectorAll('.nav-btn').forEach(function(b) {{ b.classList.remove('active'); }});
   document.getElementById('page-' + name).classList.add('active');
   btn.classList.add('active');
   if (name === 'history') {{
-    const sel = document.getElementById('historyDateSelect');
+    var sel = document.getElementById('historyDateSelect');
     if (sel && sel.value) loadHistoryDate(sel.value);
   }}
 }}
 
 // ── 필터 / 정렬 ──────────────────────────────────────
 function filterCards(type, btn) {{
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.filter-btn').forEach(function(b) {{ b.classList.remove('active'); }});
   btn.classList.add('active');
-  document.querySelectorAll('.market-card').forEach(card => {{
+  document.querySelectorAll('.market-card').forEach(function(card) {{
     card.classList.toggle('hidden', type !== 'all' && card.dataset.type !== type);
   }});
 }}
 function filterCreative(btn) {{
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.filter-btn').forEach(function(b) {{ b.classList.remove('active'); }});
   btn.classList.add('active');
-  document.querySelectorAll('.market-card').forEach(card => {{
+  document.querySelectorAll('.market-card').forEach(function(card) {{
     card.classList.toggle('hidden', card.dataset.sourcetype !== 'creative');
   }});
 }}
 function filterLocked(btn) {{
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.filter-btn').forEach(function(b) {{ b.classList.remove('active'); }});
   btn.classList.add('active');
-  document.querySelectorAll('.market-card').forEach(card => {{
+  document.querySelectorAll('.market-card').forEach(function(card) {{
     card.classList.toggle('hidden', !card.classList.contains('locked'));
   }});
 }}
 function sortCards(by) {{
-  const grid = document.getElementById('cardsGrid');
-  const cards = Array.from(grid.children);
-  cards.sort((a, b) => {{
+  var grid = document.getElementById('cardsGrid');
+  var cards = Array.from(grid.children);
+  cards.sort(function(a, b) {{
     if (by === 'score') return parseInt(b.dataset.score) - parseInt(a.dataset.score);
     if (by === 'type') return a.dataset.type.localeCompare(b.dataset.type);
     return 0;
   }});
-  cards.forEach(c => grid.appendChild(c));
+  cards.forEach(function(c) {{ grid.appendChild(c); }});
 }}
 
 // ── 잠금 시스템 ──────────────────────────────────────
-const LOCK_KEY = 'polyball_locked_idxs';
+var LOCK_KEY = 'polyball_locked_idxs';
 
 function getLockedIdxs() {{
   try {{ return new Set(JSON.parse(localStorage.getItem(LOCK_KEY) || '[]')); }}
-  catch {{ return new Set(); }}
+  catch(e) {{ return new Set(); }}
 }}
-function saveLockedIdxs(set) {{
-  localStorage.setItem(LOCK_KEY, JSON.stringify([...set]));
+function saveLockedIdxs(s) {{
+  try {{ localStorage.setItem(LOCK_KEY, JSON.stringify(Array.from(s))); }}
+  catch(e) {{}}
 }}
 
 function toggleLock(idx, btn) {{
-  const card = document.getElementById('mcard-' + idx);
-  const locked = getLockedIdxs();
+  var card = document.getElementById('mcard-' + idx);
+  if (!card) return;
+  var locked = getLockedIdxs();
   if (locked.has(idx)) {{
     locked.delete(idx);
     card.classList.remove('locked');
@@ -468,18 +477,18 @@ function toggleLock(idx, btn) {{
 }}
 
 function updateLockBadge() {{
-  const cnt = getLockedIdxs().size;
-  const badge = document.getElementById('lockCountBadge');
+  var cnt = getLockedIdxs().size;
+  var badge = document.getElementById('lockCountBadge');
   if (badge) badge.textContent = cnt > 0 ? '🔒 ' + cnt + '개 잠금' : '';
 }}
 
 function restoreLockUI() {{
-  const locked = getLockedIdxs();
-  locked.forEach(idx => {{
-    const card = document.getElementById('mcard-' + idx);
+  var locked = getLockedIdxs();
+  locked.forEach(function(idx) {{
+    var card = document.getElementById('mcard-' + idx);
     if (!card) return;
     card.classList.add('locked');
-    const btn = card.querySelector('.lock-btn');
+    var btn = card.querySelector('.lock-btn');
     if (btn) {{ btn.classList.add('locked'); btn.textContent = '🔒'; btn.title = '잠금됨 – 동기화 시 유지'; }}
   }});
   updateLockBadge();
@@ -487,39 +496,39 @@ function restoreLockUI() {{
 
 function syncLocksToServer() {{
   if (!IS_LOCAL) return;
-  const locked = getLockedIdxs();
-  const lockedMarkets = [...locked].map(idx => MARKETS_DATA[idx]).filter(Boolean);
+  var locked = getLockedIdxs();
+  var lockedMarkets = Array.from(locked).map(function(i) {{ return MARKETS_DATA[i]; }}).filter(Boolean);
   fetch('/api/locks', {{
     method: 'POST',
     headers: {{'Content-Type': 'application/json'}},
     body: JSON.stringify(lockedMarkets)
-  }}).catch(() => {{}});
+  }}).catch(function(e) {{}});
 }}
 
 // 서버에서 잠금 목록 로드 (로컬 서버 모드)
 function loadLocksFromServer() {{
   if (!IS_LOCAL) return;
-  fetch('/api/locks').then(r => r.json()).then(lockedMarkets => {{
-    if (!lockedMarkets.length) return;
-    const lockedQs = new Set(lockedMarkets.map(m => m.question));
-    const newSet = new Set();
-    MARKETS_DATA.forEach((m, idx) => {{
+  fetch('/api/locks').then(function(r) {{ return r.json(); }}).then(function(lockedMarkets) {{
+    if (!lockedMarkets || !lockedMarkets.length) return;
+    var lockedQs = new Set(lockedMarkets.map(function(m) {{ return m.question; }}));
+    var newSet = new Set();
+    MARKETS_DATA.forEach(function(m, idx) {{
       if (lockedQs.has(m.question)) newSet.add(idx);
     }});
     saveLockedIdxs(newSet);
     restoreLockUI();
-  }}).catch(() => {{}});
+  }}).catch(function(e) {{}});
 }}
 
 // ── 동기화 버튼 ──────────────────────────────────────
-let syncPollInterval = null;
+var syncPollInterval = null;
 
 function doSync() {{
   if (!IS_LOCAL) {{
     showToast('⚠️ 동기화는 로컬 서버(python server.py)에서만 가능합니다', 3500);
     return;
   }}
-  const btn = document.getElementById('syncBtn');
+  var btn = document.getElementById('syncBtn');
   btn.disabled = true;
   btn.classList.add('running');
   btn.textContent = '⏳ 동기화 중...';
@@ -527,33 +536,35 @@ function doSync() {{
   showToast('🔄 동기화 시작! 약 2분 후 자동으로 새로고침됩니다', 4000);
 
   fetch('/api/sync', {{ method: 'POST' }})
-    .then(r => r.json())
-    .then(data => {{
+    .then(function(r) {{ return r.json(); }})
+    .then(function(data) {{
       if (!data.ok) {{
         showToast('⚠️ ' + (data.message || '동기화 실패'), 3000);
         resetSyncBtn();
         return;
       }}
-      // 완료될 때까지 폴링
-      syncPollInterval = setInterval(() => {{
-        fetch('/api/sync/status').then(r => r.json()).then(s => {{
-          if (!s.running) {{
-            clearInterval(syncPollInterval);
-            document.getElementById('syncStatus').textContent = '완료 ' + s.last;
-            showToast('✅ 동기화 완료! 새로고침합니다...', 2000);
-            setTimeout(() => window.location.reload(), 2200);
-          }}
-        }}).catch(() => {{}});
+      syncPollInterval = setInterval(function() {{
+        fetch('/api/sync/status')
+          .then(function(r) {{ return r.json(); }})
+          .then(function(s) {{
+            if (!s.running) {{
+              clearInterval(syncPollInterval);
+              document.getElementById('syncStatus').textContent = '완료 ' + s.last;
+              showToast('✅ 동기화 완료! 새로고침합니다...', 2000);
+              setTimeout(function() {{ window.location.reload(); }}, 2200);
+            }}
+          }}).catch(function(e) {{}});
       }}, 5000);
     }})
-    .catch(() => {{
+    .catch(function(e) {{
       showToast('⚠️ 서버 연결 실패. python server.py가 실행 중인지 확인하세요.', 4000);
       resetSyncBtn();
     }});
 }}
 
 function resetSyncBtn() {{
-  const btn = document.getElementById('syncBtn');
+  var btn = document.getElementById('syncBtn');
+  if (!btn) return;
   btn.disabled = false;
   btn.classList.remove('running');
   btn.textContent = '🔄 동기화';
@@ -562,17 +573,19 @@ function resetSyncBtn() {{
 // Vercel에서 동기화 버튼 비활성화 표시
 function initSyncBtn() {{
   if (!IS_LOCAL) {{
-    const btn = document.getElementById('syncBtn');
+    var btn = document.getElementById('syncBtn');
+    if (!btn) return;
     btn.style.background = '#CBD5E1';
     btn.style.cursor = 'not-allowed';
     btn.title = 'Vercel 배포본에서는 로컬에서 run.py를 실행 후 GitHub에 푸시하세요';
-    document.getElementById('syncStatus').textContent = '(로컬 전용 기능)';
+    var statusEl = document.getElementById('syncStatus');
+    if (statusEl) statusEl.textContent = '(로컬 전용 기능)';
   }}
 }}
 
 // ── 히스토리 탭 ──────────────────────────────────────
 function loadHistoryDate(date) {{
-  const data = HISTORY_DATA[date];
+  var data = HISTORY_DATA[date];
   if (!data) {{
     document.getElementById('issueList').innerHTML = '<p class="empty-state">데이터 없음</p>';
     document.getElementById('marketList').innerHTML = '<p class="empty-state">데이터 없음</p>';
@@ -636,22 +649,35 @@ function toggleApplied(date, idx, checked) {{
 }}
 
 // ── 초기화 ───────────────────────────────────────────
-(function init() {{
-  initSyncBtn();
+function init() {{
+  try {{
+    initSyncBtn();
+  }} catch(e) {{ console.warn('initSyncBtn error:', e); }}
 
   // 잠금 상태 복원 (로컬에선 서버 우선, Vercel에선 localStorage)
-  if (IS_LOCAL) {{
-    loadLocksFromServer();
-  }} else {{
-    restoreLockUI();
-  }}
+  try {{
+    if (IS_LOCAL) {{
+      loadLocksFromServer();
+    }} else {{
+      restoreLockUI();
+    }}
+  }} catch(e) {{ console.warn('lock restore error:', e); }}
 
   // 히스토리 첫 날짜 자동 로드
-  var sel = document.getElementById('historyDateSelect');
-  if (sel && sel.value) {{
-    loadHistoryDate(sel.value);
-  }}
-}})();
+  try {{
+    var sel = document.getElementById('historyDateSelect');
+    if (sel && sel.value) {{
+      loadHistoryDate(sel.value);
+    }}
+  }} catch(e) {{ console.warn('history load error:', e); }}
+}}
+
+// DOMContentLoaded 이후 초기화 (이미 로드됐으면 즉시 실행)
+if (document.readyState === 'loading') {{
+  document.addEventListener('DOMContentLoaded', init);
+}} else {{
+  init();
+}}
 </script>
 </body>
 </html>"""

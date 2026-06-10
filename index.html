@@ -93,7 +93,7 @@
   <div class="header-right">
     <span class="sync-status" id="syncStatus"></span>
     <button class="sync-btn" id="syncBtn" onclick="doSync()" title="새 이슈를 수집하고 마켓 초안을 갱신합니다 (잠금 카드 유지)">🔄 동기화</button>
-    <span class="timestamp">마지막 수집: 2026-06-10 16:49</span>
+    <span class="timestamp">마지막 수집: 2026-06-10 17:57</span>
   </div>
 </header>
 
@@ -167,6 +167,7 @@
       <div class="filter-row"><button class="filter-btn active" onclick="filterCards('all', this)">전체</button><button class="filter-btn" style="--fc:#4F46E5" onclick="filterCards('prediction', this)">예측</button><button class="filter-btn" style="--fc:#059669" onclick="filterCards('vote', this)">투표</button><button class="filter-btn" style="--fc:#D97706" onclick="filterCards('ranking', this)">랭킹 예측</button><button class="filter-btn" style="--fc:#DC2626" onclick="filterCards('numeric', this)">수치 예측</button><button class="filter-btn" style="--fc:#7C3AED" onclick="filterCards('timing', this)">타이밍 예측</button><button class="filter-btn" style="--fc:#7C3AED" onclick="filterCreative(this)">✨ AI 자유 제안</button><button class="filter-btn lock-filter-btn" style="--fc:#F59E0B" onclick="filterLocked(this)">🔒 잠금됨</button></div>
       <div class="cards-grid" id="cardsGrid">
     <div class="market-card" data-type="prediction" data-score="5" data-sourcetype="issue" data-idx="0" id="mcard-0">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #4F46E5">
         <span class="type-badge" style="background:#4F46E5">예측</span>
         <span class="target-badge" style="background:#3B82F6">2030 남성</span>
@@ -184,6 +185,7 @@
       </div>
     </div>
     <div class="market-card" data-type="numeric" data-score="5" data-sourcetype="issue" data-idx="1" id="mcard-1">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #DC2626">
         <span class="type-badge" style="background:#DC2626">수치 예측</span>
         <span class="target-badge" style="background:#3B82F6">2030 남성</span>
@@ -201,6 +203,7 @@
       </div>
     </div>
     <div class="market-card" data-type="ranking" data-score="5" data-sourcetype="issue" data-idx="2" id="mcard-2">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #D97706">
         <span class="type-badge" style="background:#D97706">랭킹 예측</span>
         <span class="target-badge" style="background:#3B82F6">2030 남성</span>
@@ -218,6 +221,7 @@
       </div>
     </div>
     <div class="market-card" data-type="prediction" data-score="5" data-sourcetype="issue" data-idx="3" id="mcard-3">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #4F46E5">
         <span class="type-badge" style="background:#4F46E5">예측</span>
         <span class="target-badge" style="background:#6B7280">공통</span>
@@ -228,13 +232,14 @@
         <p class="question">이강인 선수, 이번 여름 이적시장에서 아틀레티코 마드리드로 이적할까요?</p>
         <div class="options"><span class="option-chip">네, 이적 확정!</span><span class="option-chip">아니요, 다른 팀으로 가거나 잔류</span></div>
         <div class="source-row">
-          <span class="source-title" title="[축구] 이강인의 파격 결심, 올여름 PSG와 무조건 결별! 아틀레티코행 '열망'…"새로운 환경으로 옮길 때"→이적료 '440억' 언급 - 네이트">[축구] 이강인의 파격 결심, 올여름 PSG와 무조건 결별! 아틀레티코행 '열망'…"새로운 환경으로...</span>
+          <span class="source-title" title="[축구] 이강인의 파격 결심, 올여름 PSG와 무조건 결별! 아틀레티코행 '열망'…&quot;새로운 환경으로 옮길 때&quot;→이적료 '440억' 언급 - 네이트">[축구] 이강인의 파격 결심, 올여름 PSG와 무조건 결별! 아틀레티코행 '열망'…"새로운 환경으로...</span>
           <a href="https://news.google.com/rss/articles/CBMiXEFVX3lxTE9JMnRaSmYyZXB2aTROT0cyRmdVblNFcV9zT1NaZmdKN0ljeHAySVkxVndCNG81ekNuZGVaVDZhMV9IUFZUOWpwY0xGUDhUU3E4UnNjN2dxWDJEckZF?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
         </div>
         <p class="rationale">외부 결과(공식 이적 발표)로 정답이 확정되는 미래 예측 질문입니다.</p>
       </div>
     </div>
     <div class="market-card" data-type="prediction" data-score="5" data-sourcetype="issue" data-idx="4" id="mcard-4">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #4F46E5">
         <span class="type-badge" style="background:#4F46E5">예측</span>
         <span class="target-badge" style="background:#3B82F6">2030 남성</span>
@@ -252,6 +257,7 @@
       </div>
     </div>
     <div class="market-card" data-type="vote" data-score="5" data-sourcetype="creative" data-idx="5" id="mcard-5">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #059669">
         <span class="type-badge" style="background:#059669">투표</span>
         <span class="target-badge" style="background:#6B7280">공통</span>
@@ -269,6 +275,7 @@
       </div>
     </div>
     <div class="market-card" data-type="vote" data-score="5" data-sourcetype="creative" data-idx="6" id="mcard-6">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #059669">
         <span class="type-badge" style="background:#059669">투표</span>
         <span class="target-badge" style="background:#6B7280">공통</span>
@@ -286,6 +293,7 @@
       </div>
     </div>
     <div class="market-card" data-type="prediction" data-score="5" data-sourcetype="creative" data-idx="7" id="mcard-7">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #4F46E5">
         <span class="type-badge" style="background:#4F46E5">예측</span>
         <span class="target-badge" style="background:#6B7280">공통</span>
@@ -303,6 +311,7 @@
       </div>
     </div>
     <div class="market-card" data-type="vote" data-score="5" data-sourcetype="creative" data-idx="8" id="mcard-8">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #059669">
         <span class="type-badge" style="background:#059669">투표</span>
         <span class="target-badge" style="background:#6B7280">공통</span>
@@ -320,6 +329,7 @@
       </div>
     </div>
     <div class="market-card" data-type="prediction" data-score="4" data-sourcetype="issue" data-idx="9" id="mcard-9">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #4F46E5">
         <span class="type-badge" style="background:#4F46E5">예측</span>
         <span class="target-badge" style="background:#3B82F6">2030 남성</span>
@@ -330,13 +340,14 @@
         <p class="question">4100억 투자 예고, 토트넘은 다음 시즌 EPL 챔피언스리그 진출권(4위 이내)을 획득할 수 있을까요?</p>
         <div class="options"><span class="option-chip">YES</span><span class="option-chip">NO</span></div>
         <div class="source-row">
-          <span class="source-title" title="[축구] 손흥민 충성한 10년 날렸으면서, "축구가 최우선 아니었다" 토트넘 CEO 충격 폭로→소 잃고 외양간 고친다 '4100억 투자 예고' - sportschosun.com">[축구] 손흥민 충성한 10년 날렸으면서, "축구가 최우선 아니었다" 토트넘 CEO 충격 폭로→소 ...</span>
+          <span class="source-title" title="[축구] 손흥민 충성한 10년 날렸으면서, &quot;축구가 최우선 아니었다&quot; 토트넘 CEO 충격 폭로→소 잃고 외양간 고친다 '4100억 투자 예고' - sportschosun.com">[축구] 손흥민 충성한 10년 날렸으면서, "축구가 최우선 아니었다" 토트넘 CEO 충격 폭로→소 ...</span>
           <a href="https://news.google.com/rss/articles/CBMifkFVX3lxTE96WjFoZ2V6Y2pyM3N6b2FjMGdKVHRyM0pIZG9aX2VZVFlPODhWMDNzWlRUTWNveXNpZEh5eTJoU3p1ZWFWZVVfSHpqem5BYkNpTXo0U21rVVg4NDZoRGZzeElnMUc0OFJjcnJrdjQwU2lFUDFtaXJ2bWlLeDN1d9IBd0FVX3lxTE4td3p3Rm5JcEpuT1BRS3d1V1RJY1VNaHlENXZtUmJZbmMzMjBxY3Q1dUdwNzRSRmJjdlpBb2Z4d0ZrbXh1amRpaFlVVlZsY2EzeWthX2t2d0M1Y1VBUUUxLUlBQm9ZUEZEMVJPcHNCQkZBUEFfZEZn?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
         </div>
         <p class="rationale">토트넘 CEO의 발언과 투자 예고가 팀의 다음 시즌 성적에 어떤 영향을 미칠지 예측합니다.</p>
       </div>
     </div>
     <div class="market-card" data-type="prediction" data-score="4" data-sourcetype="issue" data-idx="10" id="mcard-10">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #4F46E5">
         <span class="type-badge" style="background:#4F46E5">예측</span>
         <span class="target-badge" style="background:#6B7280">공통</span>
@@ -347,13 +358,14 @@
         <p class="question">파리바게뜨 '손흥민 리유저블백' 프로모션은 한정 수량 완판으로 조기 종료될까요?</p>
         <div class="options"><span class="option-chip">YES</span><span class="option-chip">NO</span></div>
         <div class="source-row">
-          <span class="source-title" title="[축구] "손흥민 팬심 저격" 파리바게뜨, 'LAFC 리유저블백' 프로모션 진행 - 뉴시스">[축구] "손흥민 팬심 저격" 파리바게뜨, 'LAFC 리유저블백' 프로모션 진행 - 뉴시스</span>
+          <span class="source-title" title="[축구] &quot;손흥민 팬심 저격&quot; 파리바게뜨, 'LAFC 리유저블백' 프로모션 진행 - 뉴시스">[축구] "손흥민 팬심 저격" 파리바게뜨, 'LAFC 리유저블백' 프로모션 진행 - 뉴시스</span>
           <a href="https://news.google.com/rss/articles/CBMiYEFVX3lxTE9pVXoyT3dlXzVqN09qRW5LREd2Z1hHZEpkT1RhaDhsTXNpWThQUUhwWWh5V1g2c2sxVlVJXzNyQ2FyWDVCdDZGT2lGWS1ld2xkRU8xaUEwZ1NVSXJ5RU5XN9IBeEFVX3lxTE1DUU4tUllpb1djWlQzb3gyT2U0UEpwMVV3Q21aclUyQ0lZbkYyaWxKQTJGa3hJeXdobGpIeVk0N1JQR0Z3eW5vYnFjYVZHV2s0RURxTHEwNF9KZ3NZOFJJRWpJS2VjREZ2SkItaFBUeFo0R2dFZkNybw?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
         </div>
         <p class="rationale">현재 진행 중인 손흥민 관련 프로모션의 흥행 여부를 예측하는 질문입니다.</p>
       </div>
     </div>
     <div class="market-card" data-type="vote" data-score="4" data-sourcetype="issue" data-idx="11" id="mcard-11">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #059669">
         <span class="type-badge" style="background:#059669">투표</span>
         <span class="target-badge" style="background:#3B82F6">2030 남성</span>
@@ -371,6 +383,7 @@
       </div>
     </div>
     <div class="market-card" data-type="vote" data-score="4" data-sourcetype="issue" data-idx="12" id="mcard-12">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #059669">
         <span class="type-badge" style="background:#059669">투표</span>
         <span class="target-badge" style="background:#6B7280">공통</span>
@@ -381,13 +394,14 @@
         <p class="question">손흥민 선수가 언급한 '마지막 월드컵'은 2026 북중미 월드컵이 될까요?</p>
         <div class="options"><span class="option-chip">네, 그럴 것 같아요!</span><span class="option-chip">아니요, 그 이후에도 뛸 것 같아요!</span></div>
         <div class="source-row">
-          <span class="source-title" title="[축구] "내게 마지막 월드컵 될 수도 있다" 손흥민 작심 고백…15년 태극마크 여정 끝자락, 라스트 댄스 향한 진심 - v.daum.net">[축구] "내게 마지막 월드컵 될 수도 있다" 손흥민 작심 고백…15년 태극마크 여정 끝자락, 라스...</span>
+          <span class="source-title" title="[축구] &quot;내게 마지막 월드컵 될 수도 있다&quot; 손흥민 작심 고백…15년 태극마크 여정 끝자락, 라스트 댄스 향한 진심 - v.daum.net">[축구] "내게 마지막 월드컵 될 수도 있다" 손흥민 작심 고백…15년 태극마크 여정 끝자락, 라스...</span>
           <a href="https://news.google.com/rss/articles/CBMiT0FVX3lxTFB6NUZKYkp1UXVock10TDZGNlNrbWM0S2pZbGI1Y1BiWFBocm9nQnZIN1hkdkNldXB0RFpMeXJ2dWMzb2hiZUhVU1hSTVVxNGM?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
         </div>
         <p class="rationale">유저들의 의견을 집계하여 여론을 알아보는 질문입니다.</p>
       </div>
     </div>
     <div class="market-card" data-type="numeric" data-score="4" data-sourcetype="issue" data-idx="13" id="mcard-13">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #DC2626">
         <span class="type-badge" style="background:#DC2626">수치 예측</span>
         <span class="target-badge" style="background:#3B82F6">2030 남성</span>
@@ -398,13 +412,14 @@
         <p class="question">이강인 선수의 이번 여름 이적료는 440억원을 넘을까요?</p>
         <div class="options"><span class="option-chip">440억 미만</span><span class="option-chip">440억 이상 ~ 500억 미만</span><span class="option-chip">500억 이상</span></div>
         <div class="source-row">
-          <span class="source-title" title="[축구] 이강인의 파격 결심, 올여름 PSG와 무조건 결별! 아틀레티코행 '열망'…"새로운 환경으로 옮길 때"→이적료 '440억' 언급 - 네이트">[축구] 이강인의 파격 결심, 올여름 PSG와 무조건 결별! 아틀레티코행 '열망'…"새로운 환경으로...</span>
+          <span class="source-title" title="[축구] 이강인의 파격 결심, 올여름 PSG와 무조건 결별! 아틀레티코행 '열망'…&quot;새로운 환경으로 옮길 때&quot;→이적료 '440억' 언급 - 네이트">[축구] 이강인의 파격 결심, 올여름 PSG와 무조건 결별! 아틀레티코행 '열망'…"새로운 환경으로...</span>
           <a href="https://news.google.com/rss/articles/CBMiXEFVX3lxTE9JMnRaSmYyZXB2aTROT0cyRmdVblNFcV9zT1NaZmdKN0ljeHAySVkxVndCNG81ekNuZGVaVDZhMV9IUFZUOWpwY0xGUDhUU3E4UnNjN2dxWDJEckZF?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
         </div>
         <p class="rationale">특정 수치 범위 내의 결과를 예측하는 질문입니다.</p>
       </div>
     </div>
     <div class="market-card" data-type="numeric" data-score="4" data-sourcetype="issue" data-idx="14" id="mcard-14">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #DC2626">
         <span class="type-badge" style="background:#DC2626">수치 예측</span>
         <span class="target-badge" style="background:#3B82F6">2030 남성</span>
@@ -422,6 +437,7 @@
       </div>
     </div>
     <div class="market-card" data-type="numeric" data-score="4" data-sourcetype="issue" data-idx="15" id="mcard-15">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #DC2626">
         <span class="type-badge" style="background:#DC2626">수치 예측</span>
         <span class="target-badge" style="background:#3B82F6">2030 남성</span>
@@ -432,13 +448,14 @@
         <p class="question">한화 이글스 '문동주', 이번 시즌 최종 몇 승을 기록할까요?</p>
         <div class="options"><span class="option-chip">0~3승</span><span class="option-chip">4~6승</span><span class="option-chip">7~9승</span><span class="option-chip">10승 이상</span></div>
         <div class="source-row">
-          <span class="source-title" title="[야구] 한화 20살 국가대표 성장통, 68세 노감독 어떻게 바라볼까…"WBC 다녀오며 생각 많았다, 야구 알면 알수록 어렵다" - v.daum.net">[야구] 한화 20살 국가대표 성장통, 68세 노감독 어떻게 바라볼까…"WBC 다녀오며 생각 많았다...</span>
+          <span class="source-title" title="[야구] 한화 20살 국가대표 성장통, 68세 노감독 어떻게 바라볼까…&quot;WBC 다녀오며 생각 많았다, 야구 알면 알수록 어렵다&quot; - v.daum.net">[야구] 한화 20살 국가대표 성장통, 68세 노감독 어떻게 바라볼까…"WBC 다녀오며 생각 많았다...</span>
           <a href="https://news.google.com/rss/articles/CBMiT0FVX3lxTE1ERkZnMGVqYnVNRUtrU0tmTkh3SzZyaTJzbnVsdExuajR5MmRMM3lpcE5SdjduUE1VT2pPSGt0VWIwbV96WGRuc0h5MVkydGs?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
         </div>
         <p class="rationale">특정 수치 범위 내의 결과를 예측하는 질문입니다.</p>
       </div>
     </div>
     <div class="market-card" data-type="prediction" data-score="4" data-sourcetype="issue" data-idx="16" id="mcard-16">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #4F46E5">
         <span class="type-badge" style="background:#4F46E5">예측</span>
         <span class="target-badge" style="background:#6B7280">2030 남성, 2030 여성 (농구 팬)</span>
@@ -449,13 +466,14 @@
         <p class="question">이현중 선수, 태극마크 우선의 뜨거운 사명감이 NBA 입성으로 이어질까요?</p>
         <div class="options"><span class="option-chip">네, 다음 시즌 안에 NBA 진출 성공!</span><span class="option-chip">아니요, 다음 시즌 이후를 기약할 것 같아요.</span></div>
         <div class="source-row">
-          <span class="source-title" title="[농구] "미국 개인 훈련 대신 태극마크" 이현중이 보여준 역대급 사명감... NBA 도전 앞두고도 대표팀 택했다 - v.daum.net">[농구] "미국 개인 훈련 대신 태극마크" 이현중이 보여준 역대급 사명감... NBA 도전 앞두고도...</span>
+          <span class="source-title" title="[농구] &quot;미국 개인 훈련 대신 태극마크&quot; 이현중이 보여준 역대급 사명감... NBA 도전 앞두고도 대표팀 택했다 - v.daum.net">[농구] "미국 개인 훈련 대신 태극마크" 이현중이 보여준 역대급 사명감... NBA 도전 앞두고도...</span>
           <a href="https://news.google.com/rss/articles/CBMiT0FVX3lxTE1uZkU2d3NieW11bXA3NVE5MXE5SmFzeEluQ1VMTkMzMlVORDBrZmJCMDRUMWNlekJoaG9XRlV5QmtpWlJ3SHBjYkx6YmcyLXc?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
         </div>
         <p class="rationale">특정 선수의 향후 커리어 진행 방향에 대한 외부 결과 예측입니다.</p>
       </div>
     </div>
     <div class="market-card" data-type="numeric" data-score="4" data-sourcetype="issue" data-idx="17" id="mcard-17">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #DC2626">
         <span class="type-badge" style="background:#DC2626">수치 예측</span>
         <span class="target-badge" style="background:#6B7280">2030 남성, 2030 여성 (골프 팬)</span>
@@ -473,6 +491,7 @@
       </div>
     </div>
     <div class="market-card" data-type="timing" data-score="4" data-sourcetype="issue" data-idx="18" id="mcard-18">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #7C3AED">
         <span class="type-badge" style="background:#7C3AED">타이밍 예측</span>
         <span class="target-badge" style="background:#6B7280">2030 여성, 공통</span>
@@ -490,6 +509,7 @@
       </div>
     </div>
     <div class="market-card" data-type="prediction" data-score="4" data-sourcetype="creative" data-idx="19" id="mcard-19">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #4F46E5">
         <span class="type-badge" style="background:#4F46E5">예측</span>
         <span class="target-badge" style="background:#6B7280">공통</span>
@@ -507,6 +527,7 @@
       </div>
     </div>
     <div class="market-card" data-type="vote" data-score="4" data-sourcetype="creative" data-idx="20" id="mcard-20">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #059669">
         <span class="type-badge" style="background:#059669">투표</span>
         <span class="target-badge" style="background:#6B7280">공통</span>
@@ -524,6 +545,7 @@
       </div>
     </div>
     <div class="market-card" data-type="vote" data-score="4" data-sourcetype="creative" data-idx="21" id="mcard-21">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #059669">
         <span class="type-badge" style="background:#059669">투표</span>
         <span class="target-badge" style="background:#6B7280">공통</span>
@@ -541,6 +563,7 @@
       </div>
     </div>
     <div class="market-card" data-type="vote" data-score="4" data-sourcetype="creative" data-idx="22" id="mcard-22">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #059669">
         <span class="type-badge" style="background:#059669">투표</span>
         <span class="target-badge" style="background:#6B7280">공통</span>
@@ -558,6 +581,7 @@
       </div>
     </div>
     <div class="market-card" data-type="ranking" data-score="4" data-sourcetype="creative" data-idx="23" id="mcard-23">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #D97706">
         <span class="type-badge" style="background:#D97706">랭킹 예측</span>
         <span class="target-badge" style="background:#6B7280">공통</span>
@@ -575,6 +599,7 @@
       </div>
     </div>
     <div class="market-card" data-type="vote" data-score="4" data-sourcetype="creative" data-idx="24" id="mcard-24">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #059669">
         <span class="type-badge" style="background:#059669">투표</span>
         <span class="target-badge" style="background:#6B7280">공통</span>
@@ -592,6 +617,7 @@
       </div>
     </div>
     <div class="market-card" data-type="vote" data-score="4" data-sourcetype="creative" data-idx="25" id="mcard-25">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #059669">
         <span class="type-badge" style="background:#059669">투표</span>
         <span class="target-badge" style="background:#6B7280">공통</span>
@@ -609,6 +635,7 @@
       </div>
     </div>
     <div class="market-card" data-type="ranking" data-score="4" data-sourcetype="creative" data-idx="26" id="mcard-26">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #D97706">
         <span class="type-badge" style="background:#D97706">랭킹 예측</span>
         <span class="target-badge" style="background:#6B7280">공통</span>
@@ -626,6 +653,7 @@
       </div>
     </div>
     <div class="market-card" data-type="vote" data-score="3" data-sourcetype="issue" data-idx="27" id="mcard-27">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #059669">
         <span class="type-badge" style="background:#059669">투표</span>
         <span class="target-badge" style="background:#6B7280">공통</span>
@@ -643,6 +671,7 @@
       </div>
     </div>
     <div class="market-card" data-type="vote" data-score="3" data-sourcetype="creative" data-idx="28" id="mcard-28">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #059669">
         <span class="type-badge" style="background:#059669">투표</span>
         <span class="target-badge" style="background:#6B7280">공통</span>
@@ -660,6 +689,7 @@
       </div>
     </div>
     <div class="market-card" data-type="timing" data-score="3" data-sourcetype="creative" data-idx="29" id="mcard-29">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #7C3AED">
         <span class="type-badge" style="background:#7C3AED">타이밍 예측</span>
         <span class="target-badge" style="background:#6B7280">공통</span>
@@ -677,6 +707,7 @@
       </div>
     </div>
     <div class="market-card" data-type="numeric" data-score="3" data-sourcetype="creative" data-idx="30" id="mcard-30">
+      <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #DC2626">
         <span class="type-badge" style="background:#DC2626">수치 예측</span>
         <span class="target-badge" style="background:#6B7280">공통</span>
@@ -732,72 +763,76 @@ const TYPE_KO = {"prediction": "예측", "vote": "투표", "ranking": "랭킹 �
 const IS_LOCAL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
 // ── 토스트 ──────────────────────────────────────────
-function showToast(msg, duration = 2500) {
-  const t = document.getElementById('toast');
+function showToast(msg, duration) {
+  if (duration === undefined) duration = 2500;
+  var t = document.getElementById('toast');
+  if (!t) return;
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), duration);
+  setTimeout(function() { t.classList.remove('show'); }, duration);
 }
 
 // ── 페이지 전환 ──────────────────────────────────────
 function showPage(name, btn) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
   document.getElementById('page-' + name).classList.add('active');
   btn.classList.add('active');
   if (name === 'history') {
-    const sel = document.getElementById('historyDateSelect');
+    var sel = document.getElementById('historyDateSelect');
     if (sel && sel.value) loadHistoryDate(sel.value);
   }
 }
 
 // ── 필터 / 정렬 ──────────────────────────────────────
 function filterCards(type, btn) {
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
   btn.classList.add('active');
-  document.querySelectorAll('.market-card').forEach(card => {
+  document.querySelectorAll('.market-card').forEach(function(card) {
     card.classList.toggle('hidden', type !== 'all' && card.dataset.type !== type);
   });
 }
 function filterCreative(btn) {
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
   btn.classList.add('active');
-  document.querySelectorAll('.market-card').forEach(card => {
+  document.querySelectorAll('.market-card').forEach(function(card) {
     card.classList.toggle('hidden', card.dataset.sourcetype !== 'creative');
   });
 }
 function filterLocked(btn) {
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
   btn.classList.add('active');
-  document.querySelectorAll('.market-card').forEach(card => {
+  document.querySelectorAll('.market-card').forEach(function(card) {
     card.classList.toggle('hidden', !card.classList.contains('locked'));
   });
 }
 function sortCards(by) {
-  const grid = document.getElementById('cardsGrid');
-  const cards = Array.from(grid.children);
-  cards.sort((a, b) => {
+  var grid = document.getElementById('cardsGrid');
+  var cards = Array.from(grid.children);
+  cards.sort(function(a, b) {
     if (by === 'score') return parseInt(b.dataset.score) - parseInt(a.dataset.score);
     if (by === 'type') return a.dataset.type.localeCompare(b.dataset.type);
     return 0;
   });
-  cards.forEach(c => grid.appendChild(c));
+  cards.forEach(function(c) { grid.appendChild(c); });
 }
 
 // ── 잠금 시스템 ──────────────────────────────────────
-const LOCK_KEY = 'polyball_locked_idxs';
+var LOCK_KEY = 'polyball_locked_idxs';
 
 function getLockedIdxs() {
   try { return new Set(JSON.parse(localStorage.getItem(LOCK_KEY) || '[]')); }
-  catch { return new Set(); }
+  catch(e) { return new Set(); }
 }
-function saveLockedIdxs(set) {
-  localStorage.setItem(LOCK_KEY, JSON.stringify([...set]));
+function saveLockedIdxs(s) {
+  try { localStorage.setItem(LOCK_KEY, JSON.stringify(Array.from(s))); }
+  catch(e) {}
 }
 
 function toggleLock(idx, btn) {
-  const card = document.getElementById('mcard-' + idx);
-  const locked = getLockedIdxs();
+  var card = document.getElementById('mcard-' + idx);
+  if (!card) return;
+  var locked = getLockedIdxs();
   if (locked.has(idx)) {
     locked.delete(idx);
     card.classList.remove('locked');
@@ -819,18 +854,18 @@ function toggleLock(idx, btn) {
 }
 
 function updateLockBadge() {
-  const cnt = getLockedIdxs().size;
-  const badge = document.getElementById('lockCountBadge');
+  var cnt = getLockedIdxs().size;
+  var badge = document.getElementById('lockCountBadge');
   if (badge) badge.textContent = cnt > 0 ? '🔒 ' + cnt + '개 잠금' : '';
 }
 
 function restoreLockUI() {
-  const locked = getLockedIdxs();
-  locked.forEach(idx => {
-    const card = document.getElementById('mcard-' + idx);
+  var locked = getLockedIdxs();
+  locked.forEach(function(idx) {
+    var card = document.getElementById('mcard-' + idx);
     if (!card) return;
     card.classList.add('locked');
-    const btn = card.querySelector('.lock-btn');
+    var btn = card.querySelector('.lock-btn');
     if (btn) { btn.classList.add('locked'); btn.textContent = '🔒'; btn.title = '잠금됨 – 동기화 시 유지'; }
   });
   updateLockBadge();
@@ -838,39 +873,39 @@ function restoreLockUI() {
 
 function syncLocksToServer() {
   if (!IS_LOCAL) return;
-  const locked = getLockedIdxs();
-  const lockedMarkets = [...locked].map(idx => MARKETS_DATA[idx]).filter(Boolean);
+  var locked = getLockedIdxs();
+  var lockedMarkets = Array.from(locked).map(function(i) { return MARKETS_DATA[i]; }).filter(Boolean);
   fetch('/api/locks', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(lockedMarkets)
-  }).catch(() => {});
+  }).catch(function(e) {});
 }
 
 // 서버에서 잠금 목록 로드 (로컬 서버 모드)
 function loadLocksFromServer() {
   if (!IS_LOCAL) return;
-  fetch('/api/locks').then(r => r.json()).then(lockedMarkets => {
-    if (!lockedMarkets.length) return;
-    const lockedQs = new Set(lockedMarkets.map(m => m.question));
-    const newSet = new Set();
-    MARKETS_DATA.forEach((m, idx) => {
+  fetch('/api/locks').then(function(r) { return r.json(); }).then(function(lockedMarkets) {
+    if (!lockedMarkets || !lockedMarkets.length) return;
+    var lockedQs = new Set(lockedMarkets.map(function(m) { return m.question; }));
+    var newSet = new Set();
+    MARKETS_DATA.forEach(function(m, idx) {
       if (lockedQs.has(m.question)) newSet.add(idx);
     });
     saveLockedIdxs(newSet);
     restoreLockUI();
-  }).catch(() => {});
+  }).catch(function(e) {});
 }
 
 // ── 동기화 버튼 ──────────────────────────────────────
-let syncPollInterval = null;
+var syncPollInterval = null;
 
 function doSync() {
   if (!IS_LOCAL) {
     showToast('⚠️ 동기화는 로컬 서버(python server.py)에서만 가능합니다', 3500);
     return;
   }
-  const btn = document.getElementById('syncBtn');
+  var btn = document.getElementById('syncBtn');
   btn.disabled = true;
   btn.classList.add('running');
   btn.textContent = '⏳ 동기화 중...';
@@ -878,33 +913,35 @@ function doSync() {
   showToast('🔄 동기화 시작! 약 2분 후 자동으로 새로고침됩니다', 4000);
 
   fetch('/api/sync', { method: 'POST' })
-    .then(r => r.json())
-    .then(data => {
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
       if (!data.ok) {
         showToast('⚠️ ' + (data.message || '동기화 실패'), 3000);
         resetSyncBtn();
         return;
       }
-      // 완료될 때까지 폴링
-      syncPollInterval = setInterval(() => {
-        fetch('/api/sync/status').then(r => r.json()).then(s => {
-          if (!s.running) {
-            clearInterval(syncPollInterval);
-            document.getElementById('syncStatus').textContent = '완료 ' + s.last;
-            showToast('✅ 동기화 완료! 새로고침합니다...', 2000);
-            setTimeout(() => window.location.reload(), 2200);
-          }
-        }).catch(() => {});
+      syncPollInterval = setInterval(function() {
+        fetch('/api/sync/status')
+          .then(function(r) { return r.json(); })
+          .then(function(s) {
+            if (!s.running) {
+              clearInterval(syncPollInterval);
+              document.getElementById('syncStatus').textContent = '완료 ' + s.last;
+              showToast('✅ 동기화 완료! 새로고침합니다...', 2000);
+              setTimeout(function() { window.location.reload(); }, 2200);
+            }
+          }).catch(function(e) {});
       }, 5000);
     })
-    .catch(() => {
+    .catch(function(e) {
       showToast('⚠️ 서버 연결 실패. python server.py가 실행 중인지 확인하세요.', 4000);
       resetSyncBtn();
     });
 }
 
 function resetSyncBtn() {
-  const btn = document.getElementById('syncBtn');
+  var btn = document.getElementById('syncBtn');
+  if (!btn) return;
   btn.disabled = false;
   btn.classList.remove('running');
   btn.textContent = '🔄 동기화';
@@ -913,17 +950,19 @@ function resetSyncBtn() {
 // Vercel에서 동기화 버튼 비활성화 표시
 function initSyncBtn() {
   if (!IS_LOCAL) {
-    const btn = document.getElementById('syncBtn');
+    var btn = document.getElementById('syncBtn');
+    if (!btn) return;
     btn.style.background = '#CBD5E1';
     btn.style.cursor = 'not-allowed';
     btn.title = 'Vercel 배포본에서는 로컬에서 run.py를 실행 후 GitHub에 푸시하세요';
-    document.getElementById('syncStatus').textContent = '(로컬 전용 기능)';
+    var statusEl = document.getElementById('syncStatus');
+    if (statusEl) statusEl.textContent = '(로컬 전용 기능)';
   }
 }
 
 // ── 히스토리 탭 ──────────────────────────────────────
 function loadHistoryDate(date) {
-  const data = HISTORY_DATA[date];
+  var data = HISTORY_DATA[date];
   if (!data) {
     document.getElementById('issueList').innerHTML = '<p class="empty-state">데이터 없음</p>';
     document.getElementById('marketList').innerHTML = '<p class="empty-state">데이터 없음</p>';
@@ -987,22 +1026,35 @@ function toggleApplied(date, idx, checked) {
 }
 
 // ── 초기화 ───────────────────────────────────────────
-(function init() {
-  initSyncBtn();
+function init() {
+  try {
+    initSyncBtn();
+  } catch(e) { console.warn('initSyncBtn error:', e); }
 
   // 잠금 상태 복원 (로컬에선 서버 우선, Vercel에선 localStorage)
-  if (IS_LOCAL) {
-    loadLocksFromServer();
-  } else {
-    restoreLockUI();
-  }
+  try {
+    if (IS_LOCAL) {
+      loadLocksFromServer();
+    } else {
+      restoreLockUI();
+    }
+  } catch(e) { console.warn('lock restore error:', e); }
 
   // 히스토리 첫 날짜 자동 로드
-  var sel = document.getElementById('historyDateSelect');
-  if (sel && sel.value) {
-    loadHistoryDate(sel.value);
-  }
-})();
+  try {
+    var sel = document.getElementById('historyDateSelect');
+    if (sel && sel.value) {
+      loadHistoryDate(sel.value);
+    }
+  } catch(e) { console.warn('history load error:', e); }
+}
+
+// DOMContentLoaded 이후 초기화 (이미 로드됐으면 즉시 실행)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
 </script>
 </body>
 </html>
