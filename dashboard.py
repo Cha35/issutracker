@@ -630,7 +630,8 @@ function loadHistoryDate(date) {{
       return '<div class="market-row' + (isApplied ? ' applied' : '') + '" id="mrow-' + date + '-' + i + '">' +
         '<div style="display:flex;align-items:flex-start;gap:8px">' +
         '<input type="checkbox"' + (isApplied ? ' checked' : '') +
-          ' onchange="toggleApplied(\'' + date + '\',' + i + ',this.checked)"' +
+          ' onchange="toggleApplied(this.dataset.date, this.dataset.idx, this.checked)"' +
+          ' data-date="' + date + '" data-idx="' + i + '"' +
           ' style="margin-top:4px;cursor:pointer;accent-color:#4F46E5;flex-shrink:0">' +
         '<div style="flex:1;min-width:0">' +
         '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap">' +

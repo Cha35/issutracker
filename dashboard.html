@@ -93,7 +93,7 @@
   <div class="header-right">
     <span class="sync-status" id="syncStatus"></span>
     <button class="sync-btn" id="syncBtn" onclick="doSync()" title="새 이슈를 수집하고 마켓 초안을 갱신합니다 (잠금 카드 유지)">🔄 동기화</button>
-    <span class="timestamp">마지막 수집: 2026-06-10 17:57</span>
+    <span class="timestamp">마지막 수집: 2026-06-10 18:02</span>
   </div>
 </header>
 
@@ -1007,7 +1007,8 @@ function loadHistoryDate(date) {
       return '<div class="market-row' + (isApplied ? ' applied' : '') + '" id="mrow-' + date + '-' + i + '">' +
         '<div style="display:flex;align-items:flex-start;gap:8px">' +
         '<input type="checkbox"' + (isApplied ? ' checked' : '') +
-          ' onchange="toggleApplied('' + date + '',' + i + ',this.checked)"' +
+          ' onchange="toggleApplied(this.dataset.date, this.dataset.idx, this.checked)"' +
+          ' data-date="' + date + '" data-idx="' + i + '"' +
           ' style="margin-top:4px;cursor:pointer;accent-color:#4F46E5;flex-shrink:0">' +
         '<div style="flex:1;min-width:0">' +
         '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap">' +
