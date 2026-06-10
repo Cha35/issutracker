@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>폴리볼 이슈 수집 대시보드</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif; background: #F1F5F9; color: #1E293B; min-height: 100vh; }
+  header { background: white; padding: 0 32px; border-bottom: 1px solid #E2E8F0; display: flex; align-items: center; gap: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); position: sticky; top: 0; z-index: 100; }
+  .logo { font-size: 18px; font-weight: 700; color: #1E293B; padding: 16px 0; white-space: nowrap; }
+  .logo span { color: #4F46E5; }
+  nav { display: flex; }
+  .nav-btn { padding: 20px 18px; border: none; background: none; font-size: 14px; font-weight: 500; color: #64748B; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; white-space: nowrap; }
+  .nav-btn:hover { color: #4F46E5; }
+  .nav-btn.active { color: #4F46E5; border-bottom-color: #4F46E5; font-weight: 600; }
+  .timestamp { margin-left: auto; font-size: 12px; color: #94A3B8; white-space: nowrap; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .container { max-width: 1400px; margin: 0 auto; padding: 28px 32px; }
+  .section { background: white; border-radius: 12px; padding: 24px; border: 1px solid #E2E8F0; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .section h2 { font-size: 15px; font-weight: 600; color: #374151; margin-bottom: 16px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+  .stat-card { background: white; border-radius: 12px; padding: 20px; border: 1px solid #E2E8F0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .stat-card .label { font-size: 12px; color: #94A3B8; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
+  .stat-card .value { font-size: 32px; font-weight: 700; color: #1E293B; }
+  .stat-card .sub { font-size: 12px; color: #94A3B8; margin-top: 4px; }
+  .bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .bar-label { width: 80px; font-size: 12px; color: #64748B; text-align: right; flex-shrink: 0; }
+  .bar-bg { flex: 1; background: #F1F5F9; border-radius: 4px; overflow: hidden; }
+  .bar-fill { background: linear-gradient(90deg, #4F46E5, #818CF8); height: 22px; border-radius: 4px; display: flex; align-items: center; padding-left: 8px; font-size: 11px; font-weight: 600; color: white; min-width: 28px; }
+  .stat-pill { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; color: white; margin: 3px; }
+  .filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .filter-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid #E2E8F0; background: white; color: #64748B; cursor: pointer; font-size: 13px; transition: all 0.15s; }
+  .filter-btn:hover { border-color: var(--fc, #4F46E5); color: var(--fc, #4F46E5); }
+  .filter-btn.active { background: var(--fc, #4F46E5); border-color: var(--fc, #4F46E5); color: white; }
+  .sort-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .sort-row label { font-size: 13px; color: #64748B; }
+  select { background: white; border: 1px solid #E2E8F0; color: #374151; padding: 6px 12px; border-radius: 8px; font-size: 13px; cursor: pointer; }
+  .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+  .market-card { background: #FAFAFA; border-radius: 12px; border: 1px solid #E2E8F0; overflow: hidden; transition: transform 0.15s, box-shadow 0.15s; }
+  .market-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.08); }
+  .market-card.hidden { display: none; }
+  .card-header { padding: 12px 16px; display: flex; align-items: center; gap: 8px; background: white; border-bottom: 1px solid #F1F5F9; }
+  .type-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; color: white; }
+  .target-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; color: white; }
+  .score { margin-left: auto; color: #F59E0B; font-size: 13px; letter-spacing: 1px; }
+  .card-body { padding: 14px 16px; }
+  .question { font-size: 14px; font-weight: 600; color: #1E293B; margin-bottom: 10px; line-height: 1.5; }
+  .options { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .option-chip { background: white; border: 1px solid #E2E8F0; padding: 3px 10px; border-radius: 6px; font-size: 12px; color: #374151; }
+  .source-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; gap: 8px; }
+  .source-title { font-size: 11px; color: #94A3B8; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .source-link { font-size: 11px; color: #4F46E5; text-decoration: none; white-space: nowrap; font-weight: 500; }
+  .source-link:hover { text-decoration: underline; }
+  .source-link-none { font-size: 11px; color: #CBD5E1; white-space: nowrap; }
+  .creative-badge { font-size: 11px; color: #7C3AED; white-space: nowrap; font-weight: 600; background: #F5F3FF; padding: 1px 6px; border-radius: 4px; }
+  .rationale { font-size: 11px; color: #94A3B8; font-style: italic; line-height: 1.4; }
+  .issue-row { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 1px solid #F8FAFC; }
+  .issue-row:last-child { border-bottom: none; }
+  .cat-badge { background: #EEF2FF; color: #4F46E5; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; white-space: nowrap; flex-shrink: 0; margin-top: 1px; }
+  .issue-title-text { font-size: 13px; color: #374151; flex: 1; line-height: 1.4; }
+  .market-row { padding: 10px 12px; border-radius: 8px; border: 1px solid #E2E8F0; margin-bottom: 8px; background: white; transition: background 0.2s, border-color 0.2s; }
+  .market-row.applied { background: #F0FDF4; border-color: #BBF7D0; }
+  .market-row:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">폴리볼 <span>이슈</span> 수집</div>
+  <nav>
+    <button class="nav-btn active" onclick="showPage('dashboard', this)">📊 대시보드</button>
+    <button class="nav-btn" onclick="showPage('history', this)">📋 수집 내역</button>
+  </nav>
+  <span class="timestamp">마지막 수집: 2026-06-10 15:59</span>
+</header>
+
+<div id="page-dashboard" class="page active">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="label">수집된 이슈</div>
+        <div class="value">44</div>
+        <div class="sub">중복 제거 후</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">생성된 마켓 초안</div>
+        <div class="value">31</div>
+        <div class="sub">검수 대기 중</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">평균 마켓화 점수</div>
+        <div class="value">4.2</div>
+        <div class="sub">/ 5점 만점</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">수집 카테고리</div>
+        <div class="value">5</div>
+        <div class="sub">축구, 야구, 농구 등</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+      <div class="section">
+        <h2>카테고리별 이슈 수</h2>
+        
+        <div class="bar-row">
+          <span class="bar-label">축구</span>
+          <div class="bar-bg"><div class="bar-fill" style="width:100%">20</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">사회/커뮤니티</span>
+          <div class="bar-bg"><div class="bar-fill" style="width:60%">12</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">야구</span>
+          <div class="bar-bg"><div class="bar-fill" style="width:50%">10</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">농구</span>
+          <div class="bar-bg"><div class="bar-fill" style="width:5%">1</div></div>
+        </div>
+        <div class="bar-row">
+          <span class="bar-label">골프</span>
+          <div class="bar-bg"><div class="bar-fill" style="width:5%">1</div></div>
+        </div>
+      </div>
+      <div class="section">
+        <h2>마켓 유형 분포</h2>
+        <div style="margin-bottom:16px"><span class="stat-pill" style="background:#4F46E5">예측 8개</span><span class="stat-pill" style="background:#DC2626">수치 예측 6개</span><span class="stat-pill" style="background:#D97706">랭킹 예측 3개</span><span class="stat-pill" style="background:#059669">투표 12개</span><span class="stat-pill" style="background:#7C3AED">타이밍 예측 2개</span></div>
+        <h2 style="margin-top:16px">타겟 분포</h2>
+        <div><span class="stat-pill" style="background:#3B82F6">2030 남성 9개</span><span class="stat-pill" style="background:#6B7280">공통 19개</span><span class="stat-pill" style="background:#6B7280">2030 남성, 2030 여성 (농구 팬) 1개</span><span class="stat-pill" style="background:#6B7280">2030 남성, 2030 여성 (골프 팬) 1개</span><span class="stat-pill" style="background:#6B7280">2030 여성, 공통 1개</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>마켓 초안 목록</h2>
+      <div class="sort-row">
+        <label>정렬:</label>
+        <select onchange="sortCards(this.value)">
+          <option value="score">마켓화 점수 높은 순</option>
+          <option value="type">마켓 유형별</option>
+        </select>
+      </div>
+      <div class="filter-row"><button class="filter-btn active" onclick="filterCards('all', this)">전체</button><button class="filter-btn" style="--fc:#4F46E5" onclick="filterCards('prediction', this)">예측</button><button class="filter-btn" style="--fc:#059669" onclick="filterCards('vote', this)">투표</button><button class="filter-btn" style="--fc:#D97706" onclick="filterCards('ranking', this)">랭킹 예측</button><button class="filter-btn" style="--fc:#DC2626" onclick="filterCards('numeric', this)">수치 예측</button><button class="filter-btn" style="--fc:#7C3AED" onclick="filterCards('timing', this)">타이밍 예측</button><button class="filter-btn" style="--fc:#7C3AED" onclick="filterCreative(this)">✨ AI 자유 제안</button></div>
+      <div class="cards-grid" id="cardsGrid">
+    <div class="market-card" data-type="prediction" data-score="5" data-sourcetype="issue" id="mcard-0">
+      <div class="card-header" style="border-left: 4px solid #4F46E5">
+        <span class="type-badge" style="background:#4F46E5">예측</span>
+        <span class="target-badge" style="background:#3B82F6">2030 남성</span>
+        <span class="score">★★★★★</span>
+      </div>
+      <div class="card-body">
+        <p class="question">손흥민, 다음 2026 북중미 월드컵에서 '베스트 11'에 선정될 가능성이 있을까요?</p>
+        <div class="options"><span class="option-chip">YES</span><span class="option-chip">NO</span></div>
+        <div class="source-row">
+          <span class="source-title" title="[축구] 손흥민, '지켜봐야할 월드컵 스타 26인' 선정 - 네이트">[축구] 손흥민, '지켜봐야할 월드컵 스타 26인' 선정 - 네이트</span>
+          <a href="https://news.google.com/rss/articles/CBMiXEFVX3lxTFBQRWgwVFkwQUFWNmt1WkQtekNDR2c3bnB2WTJicjhzTXIyN0VQVE1pQkpZVWJNRDI1QXY2ajhPRXdmRjNzVDhZbjZhWG5kS0hCWjZORllhdlRnMDVj?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
+        </div>
+        <p class="rationale">다가오는 월드컵에서 손흥민의 활약과 개인적인 영예 가능성을 예측하는 질문입니다.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="numeric" data-score="5" data-sourcetype="issue" id="mcard-1">
+      <div class="card-header" style="border-left: 4px solid #DC2626">
+        <span class="type-badge" style="background:#DC2626">수치 예측</span>
+        <span class="target-badge" style="background:#3B82F6">2030 남성</span>
+        <span class="score">★★★★★</span>
+      </div>
+      <div class="card-body">
+        <p class="question">손흥민은 다음 2026 북중미 월드컵 본선에서 총 몇 골을 기록할까요?</p>
+        <div class="options"><span class="option-chip">0골</span><span class="option-chip">1골</span><span class="option-chip">2골</span><span class="option-chip">3골 이상</span></div>
+        <div class="source-row">
+          <span class="source-title" title="[축구] 손흥민, '지켜봐야할 월드컵 스타 26인' 선정 - 네이트">[축구] 손흥민, '지켜봐야할 월드컵 스타 26인' 선정 - 네이트</span>
+          <a href="https://news.google.com/rss/articles/CBMiXEFVX3lxTFBQRWgwVFkwQUFWNmt1WkQtekNDR2c3bnB2WTJicjhzTXIyN0VQVE1pQkpZVWJNRDI1QXY2ajhPRXdmRjNzVDhZbjZhWG5kS0hCWjZORllhdlRnMDVj?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
+        </div>
+        <p class="rationale">다음 월드컵에서 손흥민의 구체적인 득점 수치를 예측하는 질문입니다.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="ranking" data-score="5" data-sourcetype="issue" id="mcard-2">
+      <div class="card-header" style="border-left: 4px solid #D97706">
+        <span class="type-badge" style="background:#D97706">랭킹 예측</span>
+        <span class="target-badge" style="background:#3B82F6">2030 남성</span>
+        <span class="score">★★★★★</span>
+      </div>
+      <div class="card-body">
+        <p class="question">다음 월드컵에서 한국 대표팀 '판타스틱 4' (손흥민, 이강인, 김민재, 황희찬) 중 가장 높은 공격포인트(골+도움)를 기록할 선수는?</p>
+        <div class="options"><span class="option-chip">손흥민</span><span class="option-chip">이강인</span><span class="option-chip">김민재</span><span class="option-chip">황희찬</span><span class="option-chip">동점/기타</span></div>
+        <div class="source-row">
+          <span class="source-title" title="[축구] [과달라하라 리포트] 멕시코 현지 방송이 주목하는 '판타스틱 4' 손흥민-이강인-김민재-황희찬…이름은 틀려도 소속팀은 '대문짝' - 네이트">[축구] [과달라하라 리포트] 멕시코 현지 방송이 주목하는 '판타스틱 4' 손흥민-이강인-김민재-황...</span>
+          <a href="https://news.google.com/rss/articles/CBMiXEFVX3lxTFBaYk1sLUJfaFR0ZEZTV0Q1ZV9vRTBfc2lReG9Wbm5TcEhBbk04LTBuWnZhY0hlOC13YmNLRzBic0s5ZTNjOVRWVVFJU21YbzdaT1NnOEZSaGFFMmtI?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
+        </div>
+        <p class="rationale">한국 축구의 핵심 선수들 중 다음 월드컵에서 최고의 활약을 펼칠 선수를 예측하는 랭킹 질문입니다.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="prediction" data-score="5" data-sourcetype="issue" id="mcard-3">
+      <div class="card-header" style="border-left: 4px solid #4F46E5">
+        <span class="type-badge" style="background:#4F46E5">예측</span>
+        <span class="target-badge" style="background:#6B7280">공통</span>
+        <span class="score">★★★★★</span>
+      </div>
+      <div class="card-body">
+        <p class="question">이강인 선수, 이번 여름 이적시장에서 아틀레티코 마드리드로 이적할까요?</p>
+        <div class="options"><span class="option-chip">네, 이적 확정!</span><span class="option-chip">아니요, 다른 팀으로 가거나 잔류</span></div>
+        <div class="source-row">
+          <span class="source-title" title="[축구] 이강인의 파격 결심, 올여름 PSG와 무조건 결별! 아틀레티코행 '열망'…"새로운 환경으로 옮길 때"→이적료 '440억' 언급 - 네이트">[축구] 이강인의 파격 결심, 올여름 PSG와 무조건 결별! 아틀레티코행 '열망'…"새로운 환경으로...</span>
+          <a href="https://news.google.com/rss/articles/CBMiXEFVX3lxTE9JMnRaSmYyZXB2aTROT0cyRmdVblNFcV9zT1NaZmdKN0ljeHAySVkxVndCNG81ekNuZGVaVDZhMV9IUFZUOWpwY0xGUDhUU3E4UnNjN2dxWDJEckZF?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
+        </div>
+        <p class="rationale">외부 결과(공식 이적 발표)로 정답이 확정되는 미래 예측 질문입니다.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="prediction" data-score="5" data-sourcetype="issue" id="mcard-4">
+      <div class="card-header" style="border-left: 4px solid #4F46E5">
+        <span class="type-badge" style="background:#4F46E5">예측</span>
+        <span class="target-badge" style="background:#3B82F6">2030 남성</span>
+        <span class="score">★★★★★</span>
+      </div>
+      <div class="card-body">
+        <p class="question">키움 히어로즈 이정후 선수, 2026 아시안게임 야구 대표팀 최종 엔트리에 포함될까요?</p>
+        <div class="options"><span class="option-chip">네, 당연히 뽑힙니다!</span><span class="option-chip">아니요, 이번엔 어려울 겁니다</span></div>
+        <div class="source-row">
+          <span class="source-title" title="[야구] KBO 사무국, 아시안게임 야구 대표팀 명단 발표 생중계 - 연합뉴스">[야구] KBO 사무국, 아시안게임 야구 대표팀 명단 발표 생중계 - 연합뉴스</span>
+          <a href="https://news.google.com/rss/articles/CBMiW0FVX3lxTE84MjByNzhER3lNZFd1RTFaX0h6aUo0b1d1R25TMUtIb0l6MTVjX0otSmhFQjAwUXlieUJHajBDYmRLZVRzWVNNUVZwLS1kTjhzWW5ONnVyZWU2OE3SAWBBVV95cUxOY2xoMWp5c0tWYk85TFdhR3BXVUxTb1c2TFVaRHZrSUtwT2RLSzY4UlQ2R2dmNXRTZ29Xb2Izb2otek0xWnlyUnZrclBIdnlHU2ZWUXlWdU10MkUxYXN4RlA?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
+        </div>
+        <p class="rationale">외부 결과(공식 명단 발표)로 정답이 확정되는 미래 예측 질문입니다.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="vote" data-score="5" data-sourcetype="creative" id="mcard-5">
+      <div class="card-header" style="border-left: 4px solid #059669">
+        <span class="type-badge" style="background:#059669">투표</span>
+        <span class="target-badge" style="background:#6B7280">공통</span>
+        <span class="score">★★★★★</span>
+      </div>
+      <div class="card-body">
+        <p class="question">손흥민 선수가 '마지막 월드컵이 될 수도 있다'고 언급했어. 그의 국대 커리어 마무리에 대한 당신의 생각은?</p>
+        <div class="options"><span class="option-chip">전설로 마무리하길! 유종의 미를 거둘 거야</span><span class="option-chip">아쉬워도 젊은 선수에게 기회를 줘야 해</span><span class="option-chip">다음 월드컵까지 뛰어주면 좋겠어!</span></div>
+        <div class="source-row">
+          <span class="source-title" title="손흥민 마지막 월드컵에 대한 기대감">손흥민 마지막 월드컵에 대한 기대감</span>
+          <span class="creative-badge">✨ AI 자유 제안</span>
+        </div>
+        <p class="rationale">손흥민 선수의 월드컵 관련 발언은 팬들에게 큰 관심사. 그의 국대 커리어에 대한 다양한 팬심을 묻고 싶음.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="vote" data-score="5" data-sourcetype="creative" id="mcard-6">
+      <div class="card-header" style="border-left: 4px solid #059669">
+        <span class="type-badge" style="background:#059669">투표</span>
+        <span class="target-badge" style="background:#6B7280">공통</span>
+        <span class="score">★★★★★</span>
+      </div>
+      <div class="card-body">
+        <p class="question">주 5일 재택근무 vs. 주 5일 사무실 출근, 당신의 워라밸 만족도는 어디서 높을까?</p>
+        <div class="options"><span class="option-chip">재택근무가 최고!</span><span class="option-chip">역시 사무실 출근이 효율적</span><span class="option-chip">하이브리드 근무가 이상적</span></div>
+        <div class="source-row">
+          <span class="source-title" title="재택근무 vs. 사무실 출근">재택근무 vs. 사무실 출근</span>
+          <span class="creative-badge">✨ AI 자유 제안</span>
+        </div>
+        <p class="rationale">팬데믹 이후 뜨거운 감자가 된 근무 형태에 대한 2030세대의 선호도를 묻는 질문.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="prediction" data-score="5" data-sourcetype="creative" id="mcard-7">
+      <div class="card-header" style="border-left: 4px solid #4F46E5">
+        <span class="type-badge" style="background:#4F46E5">예측</span>
+        <span class="target-badge" style="background:#6B7280">공통</span>
+        <span class="score">★★★★★</span>
+      </div>
+      <div class="card-body">
+        <p class="question">2030년, 서울 아파트 평균 매매가가 현재보다 '오를까, 내릴까'?</p>
+        <div class="options"><span class="option-chip">오른다</span><span class="option-chip">내린다</span><span class="option-chip">현재 수준 유지</span></div>
+        <div class="source-row">
+          <span class="source-title" title="영끌족과 부동산 시장">영끌족과 부동산 시장</span>
+          <span class="creative-badge">✨ AI 자유 제안</span>
+        </div>
+        <p class="rationale">2030세대에게 가장 큰 관심사 중 하나인 부동산 시장. 미래 예측에 대한 참여를 유도.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="vote" data-score="5" data-sourcetype="creative" id="mcard-8">
+      <div class="card-header" style="border-left: 4px solid #059669">
+        <span class="type-badge" style="background:#059669">투표</span>
+        <span class="target-badge" style="background:#6B7280">공통</span>
+        <span class="score">★★★★★</span>
+      </div>
+      <div class="card-body">
+        <p class="question">'조용한 퇴사' 트렌드, 당신은 어떻게 생각하나요?</p>
+        <div class="options"><span class="option-chip">개인의 워라밸을 위한 합리적 선택</span><span class="option-chip">회사에 대한 무책임한 태도</span><span class="option-chip">상황에 따라 다르다</span></div>
+        <div class="source-row">
+          <span class="source-title" title="조용한 퇴사 (Quiet Quitting)">조용한 퇴사 (Quiet Quitting)</span>
+          <span class="creative-badge">✨ AI 자유 제안</span>
+        </div>
+        <p class="rationale">2030세대의 새로운 직장 문화 트렌드. 직장 생활에 대한 가치관을 엿볼 수 있음.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="prediction" data-score="4" data-sourcetype="issue" id="mcard-9">
+      <div class="card-header" style="border-left: 4px solid #4F46E5">
+        <span class="type-badge" style="background:#4F46E5">예측</span>
+        <span class="target-badge" style="background:#3B82F6">2030 남성</span>
+        <span class="score">★★★★☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">4100억 투자 예고, 토트넘은 다음 시즌 EPL 챔피언스리그 진출권(4위 이내)을 획득할 수 있을까요?</p>
+        <div class="options"><span class="option-chip">YES</span><span class="option-chip">NO</span></div>
+        <div class="source-row">
+          <span class="source-title" title="[축구] 손흥민 충성한 10년 날렸으면서, "축구가 최우선 아니었다" 토트넘 CEO 충격 폭로→소 잃고 외양간 고친다 '4100억 투자 예고' - sportschosun.com">[축구] 손흥민 충성한 10년 날렸으면서, "축구가 최우선 아니었다" 토트넘 CEO 충격 폭로→소 ...</span>
+          <a href="https://news.google.com/rss/articles/CBMifkFVX3lxTE96WjFoZ2V6Y2pyM3N6b2FjMGdKVHRyM0pIZG9aX2VZVFlPODhWMDNzWlRUTWNveXNpZEh5eTJoU3p1ZWFWZVVfSHpqem5BYkNpTXo0U21rVVg4NDZoRGZzeElnMUc0OFJjcnJrdjQwU2lFUDFtaXJ2bWlLeDN1d9IBd0FVX3lxTE4td3p3Rm5JcEpuT1BRS3d1V1RJY1VNaHlENXZtUmJZbmMzMjBxY3Q1dUdwNzRSRmJjdlpBb2Z4d0ZrbXh1amRpaFlVVlZsY2EzeWthX2t2d0M1Y1VBUUUxLUlBQm9ZUEZEMVJPcHNCQkZBUEFfZEZn?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
+        </div>
+        <p class="rationale">토트넘 CEO의 발언과 투자 예고가 팀의 다음 시즌 성적에 어떤 영향을 미칠지 예측합니다.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="prediction" data-score="4" data-sourcetype="issue" id="mcard-10">
+      <div class="card-header" style="border-left: 4px solid #4F46E5">
+        <span class="type-badge" style="background:#4F46E5">예측</span>
+        <span class="target-badge" style="background:#6B7280">공통</span>
+        <span class="score">★★★★☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">파리바게뜨 '손흥민 리유저블백' 프로모션은 한정 수량 완판으로 조기 종료될까요?</p>
+        <div class="options"><span class="option-chip">YES</span><span class="option-chip">NO</span></div>
+        <div class="source-row">
+          <span class="source-title" title="[축구] "손흥민 팬심 저격" 파리바게뜨, 'LAFC 리유저블백' 프로모션 진행 - 뉴시스">[축구] "손흥민 팬심 저격" 파리바게뜨, 'LAFC 리유저블백' 프로모션 진행 - 뉴시스</span>
+          <a href="https://news.google.com/rss/articles/CBMiYEFVX3lxTE9pVXoyT3dlXzVqN09qRW5LREd2Z1hHZEpkT1RhaDhsTXNpWThQUUhwWWh5V1g2c2sxVlVJXzNyQ2FyWDVCdDZGT2lGWS1ld2xkRU8xaUEwZ1NVSXJ5RU5XN9IBeEFVX3lxTE1DUU4tUllpb1djWlQzb3gyT2U0UEpwMVV3Q21aclUyQ0lZbkYyaWxKQTJGa3hJeXdobGpIeVk0N1JQR0Z3eW5vYnFjYVZHV2s0RURxTHEwNF9KZ3NZOFJJRWpJS2VjREZ2SkItaFBUeFo0R2dFZkNybw?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
+        </div>
+        <p class="rationale">현재 진행 중인 손흥민 관련 프로모션의 흥행 여부를 예측하는 질문입니다.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="vote" data-score="4" data-sourcetype="issue" id="mcard-11">
+      <div class="card-header" style="border-left: 4px solid #059669">
+        <span class="type-badge" style="background:#059669">투표</span>
+        <span class="target-badge" style="background:#3B82F6">2030 남성</span>
+        <span class="score">★★★★☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">다음 2026 북중미 월드컵이 손흥민 선수의 '마지막 월드컵'이 될 것이라고 생각하시나요?</p>
+        <div class="options"><span class="option-chip">YES</span><span class="option-chip">NO</span></div>
+        <div class="source-row">
+          <span class="source-title" title="[축구] 손흥민, 마지막 월드컵 나선다…메시, 호날두도 `라스트 댄스` - 매일신문">[축구] 손흥민, 마지막 월드컵 나선다…메시, 호날두도 `라스트 댄스` - 매일신문</span>
+          <a href="https://news.google.com/rss/articles/CBMiYkFVX3lxTE1CV1FpZF9aaHdyUzRoMjJNLVNMMGNRRkl6ZGJtUEdzdUNoV245el9mZFVxTUV0VUo2M21MZjNQWnU2UTBlNkdzTng2d2FNcUkzX3Y3MklVTmlPel8zT1pnaW53?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
+        </div>
+        <p class="rationale">손흥민 선수의 커리어와 다음 월드컵 이후 행보에 대한 유저들의 의견을 수집하는 질문입니다.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="vote" data-score="4" data-sourcetype="issue" id="mcard-12">
+      <div class="card-header" style="border-left: 4px solid #059669">
+        <span class="type-badge" style="background:#059669">투표</span>
+        <span class="target-badge" style="background:#6B7280">공통</span>
+        <span class="score">★★★★☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">손흥민 선수가 언급한 '마지막 월드컵'은 2026 북중미 월드컵이 될까요?</p>
+        <div class="options"><span class="option-chip">네, 그럴 것 같아요!</span><span class="option-chip">아니요, 그 이후에도 뛸 것 같아요!</span></div>
+        <div class="source-row">
+          <span class="source-title" title="[축구] "내게 마지막 월드컵 될 수도 있다" 손흥민 작심 고백…15년 태극마크 여정 끝자락, 라스트 댄스 향한 진심 - v.daum.net">[축구] "내게 마지막 월드컵 될 수도 있다" 손흥민 작심 고백…15년 태극마크 여정 끝자락, 라스...</span>
+          <a href="https://news.google.com/rss/articles/CBMiT0FVX3lxTFB6NUZKYkp1UXVock10TDZGNlNrbWM0S2pZbGI1Y1BiWFBocm9nQnZIN1hkdkNldXB0RFpMeXJ2dWMzb2hiZUhVU1hSTVVxNGM?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
+        </div>
+        <p class="rationale">유저들의 의견을 집계하여 여론을 알아보는 질문입니다.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="numeric" data-score="4" data-sourcetype="issue" id="mcard-13">
+      <div class="card-header" style="border-left: 4px solid #DC2626">
+        <span class="type-badge" style="background:#DC2626">수치 예측</span>
+        <span class="target-badge" style="background:#3B82F6">2030 남성</span>
+        <span class="score">★★★★☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">이강인 선수의 이번 여름 이적료는 440억원을 넘을까요?</p>
+        <div class="options"><span class="option-chip">440억 미만</span><span class="option-chip">440억 이상 ~ 500억 미만</span><span class="option-chip">500억 이상</span></div>
+        <div class="source-row">
+          <span class="source-title" title="[축구] 이강인의 파격 결심, 올여름 PSG와 무조건 결별! 아틀레티코행 '열망'…"새로운 환경으로 옮길 때"→이적료 '440억' 언급 - 네이트">[축구] 이강인의 파격 결심, 올여름 PSG와 무조건 결별! 아틀레티코행 '열망'…"새로운 환경으로...</span>
+          <a href="https://news.google.com/rss/articles/CBMiXEFVX3lxTE9JMnRaSmYyZXB2aTROT0cyRmdVblNFcV9zT1NaZmdKN0ljeHAySVkxVndCNG81ekNuZGVaVDZhMV9IUFZUOWpwY0xGUDhUU3E4UnNjN2dxWDJEckZF?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
+        </div>
+        <p class="rationale">특정 수치 범위 내의 결과를 예측하는 질문입니다.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="numeric" data-score="4" data-sourcetype="issue" id="mcard-14">
+      <div class="card-header" style="border-left: 4px solid #DC2626">
+        <span class="type-badge" style="background:#DC2626">수치 예측</span>
+        <span class="target-badge" style="background:#3B82F6">2030 남성</span>
+        <span class="score">★★★★☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">LG 트윈스의 새 외국인 투수 약셀 리오스, 이번 시즌 몇 승을 거둘까요?</p>
+        <div class="options"><span class="option-chip">0~3승</span><span class="option-chip">4~7승</span><span class="option-chip">8승 이상</span></div>
+        <div class="source-row">
+          <span class="source-title" title="[야구] [MD포토] 'LG 새 외국인 투수' 약셀 리오스, 'KBO리그 기다려!' - 네이트">[야구] [MD포토] 'LG 새 외국인 투수' 약셀 리오스, 'KBO리그 기다려!' - 네이트</span>
+          <a href="https://news.google.com/rss/articles/CBMiaEFVX3lxTE8yU0VjWlE1SC1WYmlmZVB0NFVnVl81T2dMdS1rejZodnNqenpYWjJJcFhELV9RaUwyOEJXQ3UtUkduUW1rN216TW9EMlhGcXpaX2FBMk9qSWpoQ0xWQlhrdWoyYWE1LU12?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
+        </div>
+        <p class="rationale">특정 수치 범위 내의 결과를 예측하는 질문입니다.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="numeric" data-score="4" data-sourcetype="issue" id="mcard-15">
+      <div class="card-header" style="border-left: 4px solid #DC2626">
+        <span class="type-badge" style="background:#DC2626">수치 예측</span>
+        <span class="target-badge" style="background:#3B82F6">2030 남성</span>
+        <span class="score">★★★★☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">한화 이글스 '문동주', 이번 시즌 최종 몇 승을 기록할까요?</p>
+        <div class="options"><span class="option-chip">0~3승</span><span class="option-chip">4~6승</span><span class="option-chip">7~9승</span><span class="option-chip">10승 이상</span></div>
+        <div class="source-row">
+          <span class="source-title" title="[야구] 한화 20살 국가대표 성장통, 68세 노감독 어떻게 바라볼까…"WBC 다녀오며 생각 많았다, 야구 알면 알수록 어렵다" - v.daum.net">[야구] 한화 20살 국가대표 성장통, 68세 노감독 어떻게 바라볼까…"WBC 다녀오며 생각 많았다...</span>
+          <a href="https://news.google.com/rss/articles/CBMiT0FVX3lxTE1ERkZnMGVqYnVNRUtrU0tmTkh3SzZyaTJzbnVsdExuajR5MmRMM3lpcE5SdjduUE1VT2pPSGt0VWIwbV96WGRuc0h5MVkydGs?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
+        </div>
+        <p class="rationale">특정 수치 범위 내의 결과를 예측하는 질문입니다.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="prediction" data-score="4" data-sourcetype="issue" id="mcard-16">
+      <div class="card-header" style="border-left: 4px solid #4F46E5">
+        <span class="type-badge" style="background:#4F46E5">예측</span>
+        <span class="target-badge" style="background:#6B7280">2030 남성, 2030 여성 (농구 팬)</span>
+        <span class="score">★★★★☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">이현중 선수, 태극마크 우선의 뜨거운 사명감이 NBA 입성으로 이어질까요?</p>
+        <div class="options"><span class="option-chip">네, 다음 시즌 안에 NBA 진출 성공!</span><span class="option-chip">아니요, 다음 시즌 이후를 기약할 것 같아요.</span></div>
+        <div class="source-row">
+          <span class="source-title" title="[농구] "미국 개인 훈련 대신 태극마크" 이현중이 보여준 역대급 사명감... NBA 도전 앞두고도 대표팀 택했다 - v.daum.net">[농구] "미국 개인 훈련 대신 태극마크" 이현중이 보여준 역대급 사명감... NBA 도전 앞두고도...</span>
+          <a href="https://news.google.com/rss/articles/CBMiT0FVX3lxTE1uZkU2d3NieW11bXA3NVE5MXE5SmFzeEluQ1VMTkMzMlVORDBrZmJCMDRUMWNlekJoaG9XRlV5QmtpWlJ3SHBjYkx6YmcyLXc?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
+        </div>
+        <p class="rationale">특정 선수의 향후 커리어 진행 방향에 대한 외부 결과 예측입니다.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="numeric" data-score="4" data-sourcetype="issue" id="mcard-17">
+      <div class="card-header" style="border-left: 4px solid #DC2626">
+        <span class="type-badge" style="background:#DC2626">수치 예측</span>
+        <span class="target-badge" style="background:#6B7280">2030 남성, 2030 여성 (골프 팬)</span>
+        <span class="score">★★★★☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">로리 매킬로이의 '선택과 집중' 전략! 올해 메이저 대회 몇 승을 거둘까요?</p>
+        <div class="options"><span class="option-chip">0승</span><span class="option-chip">1승</span><span class="option-chip">2승 이상</span></div>
+        <div class="source-row">
+          <span class="source-title" title="[골프] 로리 매킬로이 “1년에 18~20개 대회면 충분”…선택과 집중의 일정 유지 - 와이드스포츠">[골프] 로리 매킬로이 “1년에 18~20개 대회면 충분”…선택과 집중의 일정 유지 - 와이드스포츠</span>
+          <a href="https://news.google.com/rss/articles/CBMib0FVX3lxTE16cnZ4M0JKZ19vOGFwZWZSOWZ6WWZ6UEhtcVFwdmZrOWY3ckNJdm9NNGV1THZTNGF4eFdTWnVOTG1acHIxRjhSLTFwUC1Lek5nU1dDd0NpTW5sc1NtME90THJfa3VncmtKYmxxM0kyWQ?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
+        </div>
+        <p class="rationale">특정 선수의 시즌 메이저 대회 우승 횟수를 숫자로 예측하는 질문입니다.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="timing" data-score="4" data-sourcetype="issue" id="mcard-18">
+      <div class="card-header" style="border-left: 4px solid #7C3AED">
+        <span class="type-badge" style="background:#7C3AED">타이밍 예측</span>
+        <span class="target-badge" style="background:#6B7280">2030 여성, 공통</span>
+        <span class="score">★★★★☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">사랑스러운 푸바오의 동생을 또 만날 수 있을까? 아이바오의 다음 출산은 언제쯤일까요?</p>
+        <div class="options"><span class="option-chip">올해 하반기</span><span class="option-chip">내년 상반기</span><span class="option-chip">내년 하반기 이후</span></div>
+        <div class="source-row">
+          <span class="source-title" title="[사회/커뮤니티] 아이바오-러바오 합방/출산 앙딱정 해줌.. 일부러 임신 시키는게 아님">[사회/커뮤니티] 아이바오-러바오 합방/출산 앙딱정 해줌.. 일부러 임신 시키는게 아님</span>
+          <a href="https://theqoo.net/hot/4238572741" target="_blank" class="source-link">📎 원문 보기</a>
+        </div>
+        <p class="rationale">특정 동물의 출산 시기를 예측하는 질문입니다.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="prediction" data-score="4" data-sourcetype="creative" id="mcard-19">
+      <div class="card-header" style="border-left: 4px solid #4F46E5">
+        <span class="type-badge" style="background:#4F46E5">예측</span>
+        <span class="target-badge" style="background:#6B7280">공통</span>
+        <span class="score">★★★★☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">챗GPT 같은 AI가 2030년까지 전문직의 '50% 이상'을 대체할 것이라고 생각해?</p>
+        <div class="options"><span class="option-chip">응, 충분히 가능하다고 봐</span><span class="option-chip">아니, 50%는 너무 과장된 예측이야</span><span class="option-chip">일부는 대체하겠지만 50%는 아닐 듯</span></div>
+        <div class="source-row">
+          <span class="source-title" title="AI 기술 발전과 일자리 변화">AI 기술 발전과 일자리 변화</span>
+          <span class="creative-badge">✨ AI 자유 제안</span>
+        </div>
+        <p class="rationale">2030세대에게 AI의 발전과 그로 인한 일자리 변화는 현실적인 관심사. 장기적인 예측을 유도.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="vote" data-score="4" data-sourcetype="creative" id="mcard-20">
+      <div class="card-header" style="border-left: 4px solid #059669">
+        <span class="type-badge" style="background:#059669">투표</span>
+        <span class="target-badge" style="background:#6B7280">공통</span>
+        <span class="score">★★★★☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">본업 외 N잡! 과연 '선택'일까, '필수'일까? 당신의 생각은?</p>
+        <div class="options"><span class="option-chip">필수! 더 이상 본업만으로는 살기 힘들어</span><span class="option-chip">선택! 삶의 질을 위한 주체적인 활동이야</span><span class="option-chip">상황에 따라 다름</span></div>
+        <div class="source-row">
+          <span class="source-title" title="N잡러 트렌드">N잡러 트렌드</span>
+          <span class="creative-badge">✨ AI 자유 제안</span>
+        </div>
+        <p class="rationale">2030세대의 N잡러 트렌드는 단순 부수입을 넘어 자기계발, 자아실현의 수단으로 확장되고 있음. 이에 대한 다양한 의견을 수렴.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="vote" data-score="4" data-sourcetype="creative" id="mcard-21">
+      <div class="card-header" style="border-left: 4px solid #059669">
+        <span class="type-badge" style="background:#059669">투표</span>
+        <span class="target-badge" style="background:#6B7280">공통</span>
+        <span class="score">★★★★☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">만약 소개팅 앱에서 만난 상대가 알고 보니 나와 같은 회사 동료의 '전 애인'이었다면, 이 만남을 계속 이어갈 거야?</p>
+        <div class="options"><span class="option-chip">당연히 중단! 껄끄러운 관계는 NO</span><span class="option-chip">상대방과 상의 후 결정</span><span class="option-chip">상관없어! 과거는 과거일 뿐</span></div>
+        <div class="source-row">
+          <span class="source-title" title="소개팅 앱 만남의 한계">소개팅 앱 만남의 한계</span>
+          <span class="creative-badge">✨ AI 자유 제안</span>
+        </div>
+        <p class="rationale">2030세대에게 보편화된 소개팅 앱 사용에서 발생할 수 있는 현실적인 딜레마. 흥미로운 가상 시나리오.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="vote" data-score="4" data-sourcetype="creative" id="mcard-22">
+      <div class="card-header" style="border-left: 4px solid #059669">
+        <span class="type-badge" style="background:#059669">투표</span>
+        <span class="target-badge" style="background:#6B7280">공통</span>
+        <span class="score">★★★★☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">소확행을 위한 '플렉스' vs. 미래를 위한 '짠테크', 당신의 소비 가치관은?</p>
+        <div class="options"><span class="option-chip">후회 없이 즐기는 플렉스! YOLO 인생</span><span class="option-chip">미래를 위해 아끼는 짠테크!</span><span class="option-chip">상황에 따라 유동적</span></div>
+        <div class="source-row">
+          <span class="source-title" title="플렉스 vs. 짠테크">플렉스 vs. 짠테크</span>
+          <span class="creative-badge">✨ AI 자유 제안</span>
+        </div>
+        <p class="rationale">2030세대의 양극화된 소비 트렌드. 자신의 가치관을 표출할 수 있는 주제.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="ranking" data-score="4" data-sourcetype="creative" id="mcard-23">
+      <div class="card-header" style="border-left: 4px solid #D97706">
+        <span class="type-badge" style="background:#D97706">랭킹 예측</span>
+        <span class="target-badge" style="background:#6B7280">공통</span>
+        <span class="score">★★★★☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">'비빔면엔 고기'는 옛말! 요즘 비빔면과 가장 잘 어울리는 찰떡궁합 토핑 1위는?</p>
+        <div class="options"><span class="option-chip">삼겹살</span><span class="option-chip">계란 노른자</span><span class="option-chip">골뱅이</span><span class="option-chip">만두</span><span class="option-chip">참치</span></div>
+        <div class="source-row">
+          <span class="source-title" title="비빔면 찰떡궁합 토핑">비빔면 찰떡궁합 토핑</span>
+          <span class="creative-badge">✨ AI 자유 제안</span>
+        </div>
+        <p class="rationale">키워드 중 팔도비빔면 마케팅을 보고 착안. 음식 관련 가벼운 논쟁은 2030세대가 쉽게 참여할 수 있음.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="vote" data-score="4" data-sourcetype="creative" id="mcard-24">
+      <div class="card-header" style="border-left: 4px solid #059669">
+        <span class="type-badge" style="background:#059669">투표</span>
+        <span class="target-badge" style="background:#6B7280">공통</span>
+        <span class="score">★★★★☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">내가 팔로우하는 인플루언서가 '뒷광고' 논란에 휩싸였다면? 당신의 반응은?</p>
+        <div class="options"><span class="option-chip">바로 언팔! 신뢰가 깨졌어</span><span class="option-chip">일단 지켜본다</span><span class="option-chip">크게 개의치 않아</span></div>
+        <div class="source-row">
+          <span class="source-title" title="인플루언서 마케팅과 뒷광고 논란">인플루언서 마케팅과 뒷광고 논란</span>
+          <span class="creative-badge">✨ AI 자유 제안</span>
+        </div>
+        <p class="rationale">2030세대가 활발히 이용하는 소셜 미디어와 인플루언서 문화의 어두운 면. 윤리적 딜레마에 대한 의견을 물음.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="vote" data-score="4" data-sourcetype="creative" id="mcard-25">
+      <div class="card-header" style="border-left: 4px solid #059669">
+        <span class="type-badge" style="background:#059669">투표</span>
+        <span class="target-badge" style="background:#6B7280">공통</span>
+        <span class="score">★★★★☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">비싸더라도 '친환경 제품'을 선택할 것인가, 합리적인 '가성비 제품'을 선택할 것인가?</p>
+        <div class="options"><span class="option-chip">친환경 제품을 산다</span><span class="option-chip">가성비 제품을 산다</span><span class="option-chip">둘 다 고려해서 선택한다</span></div>
+        <div class="source-row">
+          <span class="source-title" title="기후 위기와 친환경 소비">기후 위기와 친환경 소비</span>
+          <span class="creative-badge">✨ AI 자유 제안</span>
+        </div>
+        <p class="rationale">2030세대의 가치 소비 경향을 엿볼 수 있는 주제. 개인의 윤리적 소비 기준에 대한 토론 유도.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="ranking" data-score="4" data-sourcetype="creative" id="mcard-26">
+      <div class="card-header" style="border-left: 4px solid #D97706">
+        <span class="type-badge" style="background:#D97706">랭킹 예측</span>
+        <span class="target-badge" style="background:#6B7280">공통</span>
+        <span class="score">★★★★☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">요즘 데이팅 리얼리티 쇼 출연자 중, 당신이 가장 응원하는 '찐사랑' 후보 커플 1위는? (가상 프로그램 기준)</p>
+        <div class="options"><span class="option-chip">솔로지옥의 지우&태준 커플</span><span class="option-chip">하트시그널의 민서&도윤 커플</span><span class="option-chip">나는SOLO의 영철&순자 커플</span><span class="option-chip">환승연애의 주원&세영 커플</span></div>
+        <div class="source-row">
+          <span class="source-title" title="데이팅 리얼리티 쇼 과몰입">데이팅 리얼리티 쇼 과몰입</span>
+          <span class="creative-badge">✨ AI 자유 제안</span>
+        </div>
+        <p class="rationale">2030세대가 즐겨보는 데이팅 리얼리티 쇼에 대한 과몰입을 유도. 특정 커플에 대한 지지도를 물어볼 수 있음.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="vote" data-score="3" data-sourcetype="issue" id="mcard-27">
+      <div class="card-header" style="border-left: 4px solid #059669">
+        <span class="type-badge" style="background:#059669">투표</span>
+        <span class="target-badge" style="background:#6B7280">공통</span>
+        <span class="score">★★★☆☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">식품업계의 '손흥민 마케팅'이 시차 등으로 인한 다음 월드컵 무관심을 정말 극복할 수 있을까요?</p>
+        <div class="options"><span class="option-chip">충분히 극복할 수 있다</span><span class="option-chip">영향은 있겠지만 극복은 어렵다</span><span class="option-chip">큰 영향 없을 것 같다</span></div>
+        <div class="source-row">
+          <span class="source-title" title="[축구] '시차·무관심' 악재 속…식품업계, '손흥민' 앞세워 월드컵 불씨 살린다 - 뉴스1">[축구] '시차·무관심' 악재 속…식품업계, '손흥민' 앞세워 월드컵 불씨 살린다 - 뉴스1</span>
+          <a href="https://news.google.com/rss/articles/CBMiX0FVX3lxTFBOUWpTQXBRY3RSU0loX1NGMDZMamVvWjR2N3kyWlVFdzFud0hwamRjSnBVTU4xX2xLQnh2ejZxYnJnUWdwNEFsZjh4SG54eFo0UTlodldlNU5KckxzNVZr?oc=5" target="_blank" class="source-link">📎 원문 보기</a>
+        </div>
+        <p class="rationale">월드컵 흥행을 위한 마케팅 전략의 효과에 대한 유저들의 의견을 묻는 질문입니다.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="vote" data-score="3" data-sourcetype="creative" id="mcard-28">
+      <div class="card-header" style="border-left: 4px solid #059669">
+        <span class="type-badge" style="background:#059669">투표</span>
+        <span class="target-badge" style="background:#6B7280">공통</span>
+        <span class="score">★★★☆☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">로맨스 드라마 속 '재벌 3세 남주'와 '짠내 나는 여주'의 만남, 현실에서도 성공할 수 있을까?</p>
+        <div class="options"><span class="option-chip">드라마니까 가능한 얘기! 현실은 절대 NO</span><span class="option-chip">간혹 있겠지만 매우 희박할 듯</span><span class="option-chip">사랑으로 극복하면 가능해!</span></div>
+        <div class="source-row">
+          <span class="source-title" title="K-드라마 속 로맨스 판타지 현실 대입">K-드라마 속 로맨스 판타지 현실 대입</span>
+          <span class="creative-badge">✨ AI 자유 제안</span>
+        </div>
+        <p class="rationale">K-드라마, 웹툰을 즐겨보는 2030세대에게 익숙한 클리셰. 현실과 이상 사이의 괴리에 대한 투표.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="timing" data-score="3" data-sourcetype="creative" id="mcard-29">
+      <div class="card-header" style="border-left: 4px solid #7C3AED">
+        <span class="type-badge" style="background:#7C3AED">타이밍 예측</span>
+        <span class="target-badge" style="background:#6B7280">공통</span>
+        <span class="score">★★★☆☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">완벽한 레벨5 자율주행 자동차, 우리가 직접 타볼 수 있는 건 몇 년 뒤부터일까?</p>
+        <div class="options"><span class="option-chip">5년 이내</span><span class="option-chip">5~10년 뒤</span><span class="option-chip">10년 초과</span><span class="option-chip">평생 못 타본다</span></div>
+        <div class="source-row">
+          <span class="source-title" title="자율주행 상용화">자율주행 상용화</span>
+          <span class="creative-badge">✨ AI 자유 제안</span>
+        </div>
+        <p class="rationale">미래 기술에 대한 2030세대의 기대와 예측을 알아볼 수 있음.</p>
+      </div>
+    </div>
+    <div class="market-card" data-type="numeric" data-score="3" data-sourcetype="creative" id="mcard-30">
+      <div class="card-header" style="border-left: 4px solid #DC2626">
+        <span class="type-badge" style="background:#DC2626">수치 예측</span>
+        <span class="target-badge" style="background:#6B7280">공통</span>
+        <span class="score">★★★☆☆</span>
+      </div>
+      <div class="card-body">
+        <p class="question">반려동물 한 달 키우는 데 드는 양육 비용, 평균 얼마라고 생각하세요?</p>
+        <div class="options"><span class="option-chip">10만원 미만</span><span class="option-chip">10만원 ~ 20만원</span><span class="option-chip">20만원 ~ 30만원</span><span class="option-chip">30만원 이상</span></div>
+        <div class="source-row">
+          <span class="source-title" title="펫팸족 증가와 반려동물 양육 비용">펫팸족 증가와 반려동물 양육 비용</span>
+          <span class="creative-badge">✨ AI 자유 제안</span>
+        </div>
+        <p class="rationale">2030세대에게 중요한 펫팸족 트렌드. 현실적인 양육 비용에 대한 인식을 묻는 질문.</p>
+      </div>
+    </div></div>
+    </div>
+  </div>
+</div>
+
+<div id="page-history" class="page">
+  <div class="container">
+    
+    <div class="section" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <h2 style="margin:0">📋 수집 내역</h2>
+        <select id="historyDateSelect" onchange="loadHistoryDate(this.value)">
+          <option value="2026-06-10">2026-06-10 (88개 이슈 / 마켓 31개)</option>
+        </select>
+        <span id="historyStats" style="font-size:13px;color:#64748B"></span>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="section" style="max-height:70vh;overflow-y:auto">
+        <h2 style="margin-bottom:12px">이슈 목록 <span id="issueCount" style="font-size:13px;color:#94A3B8;font-weight:400"></span></h2>
+        <div id="issueList"></div>
+      </div>
+      <div class="section" style="max-height:70vh;overflow-y:auto">
+        <h2 style="margin-bottom:12px">마켓 초안 <span id="marketCount" style="font-size:13px;color:#94A3B8;font-weight:400"></span></h2>
+        <div id="marketList"></div>
+      </div>
+    </div>
+
+    <script>
+    const HISTORY_DATA = {"2026-06-10": {"issues": [{"title": "“로봇계의 손흥민?”…축구공 찼더니 벽 ‘움푹’ 파였다 - 동아일보", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMic0FVX3lxTE9ITnNZSTNHQ1IwRElQV09PajBTTDVERWVNTV84VHB1YzlQSnFUM3RXOFpFbzFZSEIwdFhqY25Da3NIcm5kNGtId3RMcWlVSXFNc24xOFJnaGRERDk5d0pvSmRyOC1mejRqbGNkSC1QdTlVODDSAWZBVV95cUxPa0lZS2dfU19Ka2VFNmdIRHBxYlk0ZV80UnowbzBUcEJsV0NyeHBhOVU5N3ppVTdWSkVORXRpaVJlQjRCZE01dFZ0b1VQR2tsQ0RkeFdENWZXdUZnUXd3YVNRZGh4OFE?oc=5"}, {"title": "손흥민 충성한 10년 날렸으면서, \"축구가 최우선 아니었다\" 토트넘 CEO 충격 폭로→소 잃고 외양간 고친다 '4100억 투자 예고' - sportschosun.com", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMifkFVX3lxTE96WjFoZ2V6Y2pyM3N6b2FjMGdKVHRyM0pIZG9aX2VZVFlPODhWMDNzWlRUTWNveXNpZEh5eTJoU3p1ZWFWZVVfSHpqem5BYkNpTXo0U21rVVg4NDZoRGZzeElnMUc0OFJjcnJrdjQwU2lFUDFtaXJ2bWlLeDN1d9IBd0FVX3lxTE4td3p3Rm5JcEpuT1BRS3d1V1RJY1VNaHlENXZtUmJZbmMzMjBxY3Q1dUdwNzRSRmJjdlpBb2Z4d0ZrbXh1amRpaFlVVlZsY2EzeWthX2t2d0M1Y1VBUUUxLUlBQm9ZUEZEMVJPcHNCQkZBUEFfZEZn?oc=5"}, {"title": "한국 주장 손흥민, 월드컵 주목해야 할 스타 26명에 선정 - 서울신문", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMifkFVX3lxTFBRM3VDX0J1TFI1VTVpdkozcWZGVHF3WnoyUzBNQUd2UHhKZmhVeEZ4cW5OSy1FMWpGWmVTcDBDb3pIQVV5STZsRGxiUFJmUDI1TWhYNGtEUmRramRuV3JsWVlTYTJtRlZzeEMzWHAxRVhuZXowREFUaHlZaFVTUQ?oc=5"}, {"title": "'와' 손흥민 이 정도야?…세계축구사 최고의 윙어 28인 포함→비니시우스·야말과 어깨 나란히 - v.daum.net", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE42aE5zeG5ZN0hZejdCc1FtaGtJVTVIZmZTMHp1NDFVTjlVVHFoWXRIN19sRzNqQTBYeE9EcmxiSTlid1RGOHJYdTlCVmYzT1k?oc=5"}, {"title": "\"손흥민 팬심 저격\" 파리바게뜨, 'LAFC 리유저블백' 프로모션 진행 - 뉴시스", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiYEFVX3lxTE9pVXoyT3dlXzVqN09qRW5LREd2Z1hHZEpkT1RhaDhsTXNpWThQUUhwWWh5V1g2c2sxVlVJXzNyQ2FyWDVCdDZGT2lGWS1ld2xkRU8xaUEwZ1NVSXJ5RU5XN9IBeEFVX3lxTE1DUU4tUllpb1djWlQzb3gyT2U0UEpwMVV3Q21aclUyQ0lZbkYyaWxKQTJGa3hJeXdobGpIeVk0N1JQR0Z3eW5vYnFjYVZHV2s0RURxTHEwNF9KZ3NZOFJJRWpJS2VjREZ2SkItaFBUeFo0R2dFZkNybw?oc=5"}, {"title": "손흥민, 마지막 월드컵 나선다…메시, 호날두도 `라스트 댄스` - 매일신문", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiYkFVX3lxTE1CV1FpZF9aaHdyUzRoMjJNLVNMMGNRRkl6ZGJtUEdzdUNoV245el9mZFVxTUV0VUo2M21MZjNQWnU2UTBlNkdzTng2d2FNcUkzX3Y3MklVTmlPel8zT1pnaW53?oc=5"}, {"title": "[여기는 과달라하라] 손흥민과 황희찬, 체코전에 얽히고 설킨 인연들과 적수로 - 스포츠경향", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiXkFVX3lxTFBhUkpteUpVVWhtM3VLVHdHVjVRb2hZSVVnSDA3b0Q4SENyLXZ4cm9ndURTNEdSRWNOeFdhWFYxQWdsZ3pUeU1XU2NzTXM2Uk14WjNlejY4UlktZFFyUVHSAWNBVV95cUxOYkpfdXVzaGFQX19CWEU4bng3a0VlcW50NGFQRW5wcjIzOWp2LXpacjY3czREM181NS1Gc1JLUVA0WTI4bGZ6c25pVHV0X3dQcG01aHhibUdvdGJhbHpidGpFX0U?oc=5"}, {"title": "손흥민, 북중미 월드컵 ‘지켜봐야 할 스타 26명’ 선정 - 서울경제", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiUkFVX3lxTFBpWV9uajAyTXJQeXpLUzVQcFhobzkyWTRINHlWbGNtbVUxdDUzTE5UY1ZLQXdCMHpmQ1JWRDBwOUJrb2ZvNzNxSk9neVk5QUlXLXfSAVNBVV95cUxPRGloU2x3SlhZbjMxaEx2Y3ltenhtNG4zWnNsOWY0VUxhbWdFeHYtWXhVd1RGaTF2X2h2STFBTThLNWZHdENkZXY3YnpmOHZkd2NWWQ?oc=5"}, {"title": "뛰는 손흥민 보며 \"군대도 안 갔다 온 XX들\"...현장서 녹음된 막말 파장 [지금이뉴스] - YTN", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiXkFVX3lxTE1RTWZIN0J2Mm5rc1BJRm1MVUx6ZWVONWVZcFNwZDRXZC1HZVg5YjNlZUVEclVmMUlLa2JLOGROMTlHM3dZVEdpUGZEQ3VsZmNzT2F0Z0YzbHZ4Vmx4X0E?oc=5"}, {"title": "역시 월클! 메인 화면까지 장식했다...'아시아 유일' 손흥민, 메날두+음바페+케인+홀란 등과 함께 '지켜봐야 할 스타 26인' 선정 - 조선일보", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMigwFBVV95cUxPbGctZVY5Uk5RLXNScE1LVVA5OTBKMkJ0VmJ3MHNNc0NTUlM5YklDbW5KOFoxb3NpcWxFeGo2MUd4bU54NmRwZ3RidTVfMjVWaXFvSzF3TEszOWlxeEtnbTlFOEd1Nl9PbWwwLURSakxzQnFQb0EyWGxBTzBFcE4tbVNIUQ?oc=5"}, {"title": "손흥민 훈련 중인데⋯\"군대의 '군'자도 모르는 XX들\" 녹음 확산 논란 - 아이뉴스24", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiS0FVX3lxTE55cFRsRlgwQ0lCR0NNdVpyVWZQbUtxalRVQ1ZUYWNBUFVSNC1zQ3RDNDhSNENjb1ZqRENnb0ZuTjFlMmhPZFhRdUlUSQ?oc=5"}, {"title": "[월드컵] 손흥민, 야후스포츠 ‘월드컵 주목해야 할 26인’에 선정…멕시코, 히메네스·모라 포함 ‘눈길’ - 강원도민일보", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiZ0FVX3lxTE9jWnJDQ1RrakF3bEVUY1RrMjl6M2x6ZmxIaEV3ZW12cVpIaGZWUkJ3VERyTnFrTnk2ZG1jRXQwNEI2XzZLcnV3d1NSNjJDQkIteHZSRHI0Q3ZIZTBuUW5KVTFXSFo5ejA?oc=5"}, {"title": "[2026WC] 손흥민, 야후스포츠 선정 '월드컵 빛낼 스타 26인' - 뉴스핌", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTE8zN0NDbG4wQzlFSDNHTmJCRkxWOFVKMXlYdFdRRW9yMVZQNEFEdWVqbV9PMGdXM25ELUVQZVlIZEtYNUlvYU13bm9HdUh6Wi1iVm8wVFQ5ZGFmZi1C?oc=5"}, {"title": "메시·호날두와 함께…손흥민, 북중미월드컵 ‘주목해야 할 26인’ - 한겨레", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiZEFVX3lxTE5pR2E2MDhIUXI0X25nQ0ZaQU9HZ3ctWEF3RkNnVzFLNzFPd0NVaEdnRDJ2aHFOak1GNUdRMVdJS1JoRFh1Y2picTJlZjE4RDJEMXFqQTBQRmJJZGRWQjJOS3VUOVc?oc=5"}, {"title": "\"내게 마지막 월드컵 될 수도 있다\" 손흥민 작심 고백…15년 태극마크 여정 끝자락, 라스트 댄스 향한 진심 - v.daum.net", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTFB6NUZKYkp1UXVock10TDZGNlNrbWM0S2pZbGI1Y1BiWFBocm9nQnZIN1hkdkNldXB0RFpMeXJ2dWMzb2hiZUhVU1hSTVVxNGM?oc=5"}, {"title": "이강인의 파격 결심, 올여름 PSG와 무조건 결별! 아틀레티코행 '열망'…\"새로운 환경으로 옮길 때\"→이적료 '440억' 언급 - 네이트", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTE9JMnRaSmYyZXB2aTROT0cyRmdVblNFcV9zT1NaZmdKN0ljeHAySVkxVndCNG81ekNuZGVaVDZhMV9IUFZUOWpwY0xGUDhUU3E4UnNjN2dxWDJEckZF?oc=5"}, {"title": "이탈리아 기자도 '날아라 슛돌이' 안다…\"이강인, 월드컵 A조 가장 주목할 만한 선수! PSG에선 밀렸지만 한국에선 핵심\" - 네이트", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTFBtMU5IMDRhQ2VRSUNBWVgxaldEQ01Fd0hvNXBYaE5nTGM1MHR5R1dMTUZTbXNoX0l5UV9RQzZKRUZqMTJkVmlnWDkteXZOQ2pQdFhVRVkxcndhdXlW?oc=5"}, {"title": "'대박' 伊 매체에 등장한 \"슛돌이\"... 이강인 향해 \"축구 천재 꼬마가 A조 최고 스타됐다\" A조 에이스 선정 - v.daum.net", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE9VVURmX19yVGhJN2lHcEN2Zy1taVk4Si1QUlFRb254UEJaWWhlcENSajVzVGtHS3VrSjcwTm03a2o3UlU4Z29lZ3VDUmg2R28?oc=5"}, {"title": "손흥민+이강인+김민재 대한민국 삼대장 미쳤다! 멕시코-체코-남아공 다 넘고 A조 몸값 베스트 일레븐 등극 - sportschosun.com", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMifkFVX3lxTE9TS1IxenpILUk1RDc0YmV1c2tjaFRNVUtFcGR2VWlaV0xOMDJleGtnWVhyV1RiVWR1Mm5xNnNrSThPa3l6ckV5SzVzMFlBSk1ReS1jX0dId0xXZjFrbVFmR0VGa092NS1mUmpUamFEMUJGTHpMNl9sVUJaWVJwZ9IBd0FVX3lxTE1rbmRwTXcwNGcyZjBmYW0tT1F0dFBOSlV4ZktrRldaMzZkaWtheElETDUyNVZEWF9pYS1VTGs0N1MwU1pSQzc5SXpoWFFjTmpqbU16bDJBRDI5UnZudkdhVk91R2lZMUZZc1UwMVFHeWVUTmhQVkNz?oc=5"}, {"title": "\"이강인, 월드컵 A조서 주목해야 할 선수\"…WC 대활약→ATM 걱정 커진다 - 엑스포츠뉴스", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiVEFVX3lxTE9TUTVsVE5WX25uVnVtZ095ZlJJM2NZdXhuZU9Kd1dRZTdZQWl6MUhvWnhYaVBuX0FRcjdtZEdCd3JZM2p4MTVNRUdOVWxVZ2FwSVlEQg?oc=5"}, {"title": "\"이강인, 아틀레티코에 미쳐 있다\" 또 챔스 결승 0분→PSG와는 완전 '끝'...\"이적 의지 굳혔다\" 예상 몸값 441억 원 - 미주중앙일보", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiYkFVX3lxTE9aN2V6eVpJMUd0T29ZcEUzR1RSeXkybVZCdkczUlhMd2RsclZ3VElScnBTWGcwdXd0QnFQZVc2YmhmakN4ZHVCVW81eGdWNTVDM0J0Y2VtVG1lZmFLMUJTemdR?oc=5"}, {"title": "ESPN “손흥민 혼자론 어렵다”⋯체코전 열쇠는 이강인·이재성 [북중미 월드컵] - 이투데이", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMidEFVX3lxTE1mT3hLRGp0N1ZjY09mT21jZ3h2ZEp1alZvS3hMamp2amZvMWN2eVZZYU1RVGJwcV82UGxDcmxRY0ItYTBlalFrczdhNWxjU2I4aThjXzBlR24ya0tLRjFPZ1NhWm95c01rblg0elZPU1BKVU8x?oc=5"}, {"title": "'대박' 伊 매체에 등장한 \"슛돌이\"... 이강인 향해 \"축구 천재 꼬마가 A조 최고 스타됐다\" A조 에이스 선정 - 머니투데이 - 머니투데이", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiakFVX3lxTFBhVE4xN3BlR29oS2dJckZMNGtoN0EtNDJqSm44NVdtVHRBaTAyNXE4cFNNNDF6NU9Ma1QxMERURlo0VXVEdm4xV1F4M0tmaDE5UlhJWm5OUkQxcUt5ZER5VlYtdkFmd2hqa3fSAW9BVV95cUxPOTBkV3FDMXFzNEhjZnZsM201QS1rZV9pems3RzhJZ1pLTl9xNXhqanBMMnFxVXNtei1FRWhkWDQ0dEQxakt0NHdCQmxSMDFVbExWVHNSc3hCek1LOE03T0puSjJvc2c4eXRLY0czWTQ?oc=5"}, {"title": "\"이강인, 아틀레티코 마드리드 이적에 미쳐 있어\" 드디어 PSG 떠난다…\"UCL 결승 '0분' 출전, 결심 굳힌 계기 돼\" - v.daum.net", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE5fVnZwNG5yV1ZWVnM3SUNfYUluakVFQUNRNk9NQTVURmRsQnlPOWZPZTE3dnZiczNoZFg3RXhJMHdDd1ZXUGh5dU1ndGx0Mm8?oc=5"}, {"title": "韓 축구 차세대 에이스 “이강인, ATM행에 미쳐 있다” 스페인 매체의 화끈한 표현… PSG 떠나 스페인 무대 복귀하나 - besteleven.com", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMibkFVX3lxTE9JZlhyb0pmaHpkVmFlLXROSFQ0ZUZPYVZQWkI0MVZ2cFMtWnJPdlM0MVplblRtLXIxNDMwcFMwdi1majlKb3I4bDRMWTZmbFJLeldQakc1dGtrRW1OUm42bFFVWE9ka18zcG41eWNB?oc=5"}, {"title": "\"이강인 빠졌다, 아틀레티코 이적에\" 韓 에이스, 이렇게 진심인 이적 있었나...\"챔스 0분 출전 결정적, 생각 굳힌 계기\" - sportschosun.com", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMifkFVX3lxTE1sZk1FZ212NGU0cWpBRTc1LTN6Xzg1VEpsV1VhZFp3T285SnZmS0ZydGZ1aTlrQzhveTF0U285dW1jZS1BLTR4Nzk3RmcwM1FxSUFOc29RSDNjNVFJNklfT3BUZFgxSDZiTkNPdmU5d01hZGNOMHNpUmU3bWd6QdIBd0FVX3lxTE9ENTBaRDE4RGFfZTdVTlpXX0oyVlJhRTFtNF9xOHAzQ2hyVkFRRWhxM20zS3V2ck5YMHRrZVZZYUhMLWxabC0yMHZHcXNsZWx2QXBxYkk0azdwMzhONWNkc25ORHV6QkpjVHhyeldqWXFkeUc0SjhF?oc=5"}, {"title": "'대박' 伊 매체에 등장한 \"슛돌이\"…이강인 향해 \"축구 천재 꼬마가 A조 최고 스타됐다\" A조 에이스 선정 - 네이트", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTE5lWFczQTlNZnd6b1NrREpSbkpEZ3k2RVdOa1cxay01VWRsOUx3YkFySEl1cmFxWWJWamItMUNlc2FObzhWS0xiNUlWUGJxWHI0bmJFR2I3aG5aVjdt?oc=5"}, {"title": "무려 이강인의 3배…갑자기 2주 만에 팔로워 4700명 → 540만명 찍은 '축구 선수' - 위키트리", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiVkFVX3lxTFAwa0pGWmw3V2pXQ1BjenFiT25jUFVlQ1hUS1hvYi02T21FVGpHaTl5TmFmUFJxQTlsc3JoeGRxNURxTHpsYnNXZGJMcWRXWDFnc0FXYmF3?oc=5"}, {"title": "이강인, 챔스 결승 '0분'→큰 충격이었나? 이적 의지 확고하다…\"아틀레티코에 미친 LEE, 프로젝트 합류 반길 것\" 西 매체 보도 - 엑스포츠뉴스", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiVEFVX3lxTE5jRjNZM0I2dnlyTi1KM1JyeXJISFpwQlUzZnlhZ2xScXN6U3VPRUNqRmRJX1NnWmlLT05iWXZ2Qm0wY1R6M05RamRwWUFFUkw4LXlnMA?oc=5"}, {"title": "이탈리아 기자도 '날아라 슛돌이' 안다...\"이강인, 월드컵 A조 가장 주목할 만한 선수! PSG에선 밀렸지만 한국에선 핵심\" - 인터풋볼", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMidEFVX3lxTE5TSGIwdHBGeGtFUnp6OXIyTlM0WVJTZDlrbEhOS1ZiYlFFNUF6SGg1eTMtSWdQcDloYmhJZ2ZpWC00aWJHV211cHZzTmpFd2xtd0pIU2pmeFVNdkRfaGJkRndWT0xjZDRkRVFiT2xCZ2l1ZnU0?oc=5"}, {"title": "[공식발표] 'K리그1 골찌' 광주, 공격력 강화…이랜드서 호주 공격수 아이데일 영입 - 네이트", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTFBLdFFOMG5UaW1vWi1rOTBIMjA4TnlZakpRQXJYRlRxTkVWQ3FGMzNxQXpsRXBHby1NRkUxWndFMUl3MVJlRWkwV3g3RExvbGJkUW5WV2dEajhKRmNG?oc=5"}, {"title": "전주월드컵경기장, K리그1 그린 스타디움 전국 1위 - 이투데이", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiVEFVX3lxTFBYS05rV0NUVmN5c0phX1UyLVk5eUpnTzdHcjBFXzRvVWlBQXNJV0hKQnVwX21PVWQ3RjNEVGNqb205cllXMDkxMmN1OVc3ZmRPQmxiZQ?oc=5"}, {"title": "K리그 축구산업 아카데미 전 기수 수료생 한자리에…'2026 커리어 컨퍼런스: 캠퍼스 데이' 성황리 개최 - 네이트", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTE4tRmZ1NDloRmRoTHVTSDdtX2FZVnRmOENiQ3dScHFnclhEN2d5c3ZHVjlWNC1nUnZ6a1BUVXBqUmRZbjVJenhZbGFJOUF5WUFtdnd2QWlFYU1wS2Zq?oc=5"}, {"title": "'K리그 전북 출신 체코 선수'가 바라본 한국-체코 축구대표팀[페트라섹 인터뷰①] - v.daum.net", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiW0FVX3lxTE1Od1Y0RzNGWktkS1dDUE5tZ0tMeHFhUW1FeWkzdU12YWRDOWc0ZGMzSTh6OXpmcTRIX213WkRDX0I5eThkaWFRYmRFZ1NkdWtXdXh0YjBUMHhtRk0?oc=5"}, {"title": "K리그1 부천FC 골키퍼 김형근 ‘5월 이달의 세이브’상 수상 - 기호일보", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMib0FVX3lxTE5lWUJkcnl5TzBVZjlLR3B4dW83WEJBSUFxeHpGY3NLclhmT0dMZGp2WUtuczdGRmNNWnluUFpfMDdFQjF1OWhvdDNHUXI4SzlBaVNsY3FIcS1oMmdyUTZtUDk3M0ZjV3RaWi14SGo4RQ?oc=5"}, {"title": "K리그 축구산업 아카데미 전 기수 수료생 한자리에…'2026 커리어 컨퍼런스: 캠퍼스 데이' 개최 - 미디어펜", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiVEFVX3lxTE9wMkUyTnRoRXNlRHRZZEJYVjhMbWRURjlEM1ZWakdtMTNMbmV2UEJFcnk3YnQ0bUFUM1B5X043UDlPNFRmdTNtNFQ4aTNWc3NXenl4YtIBWEFVX3lxTE5vTEFkalZWTUpjY1I5UzljRWZaUWhicFQwaG5Qd2VsRDBsTm5ybGdNNF9PaE1HWERhMDBFM2NfbDBMNk9pb0xpQlJLNTByT3MxNmpTZThQb1k?oc=5"}, {"title": "K리그 축구산업 인재들 한자리에… 커리어 컨퍼런스 ‘캠퍼스 데이’로 다시 뭉친 축구산업 아카데미 수료생들 - besteleven.com", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMibkFVX3lxTE1kak5OVXp5Uk9ycGZzNlI5aTFka0lHUDFkRkxWLUFhUFhkRWlCdXBydWRjYzZVLXp0NUdkRWxHa1NCUE9CYmFSWlZiclNQalJnZlpxaUIxUG42VzVqUmxfeTliYmtkYlBHNHNGa1ln?oc=5"}, {"title": "K리그 축구산업 아카데미 전 기수 수료생 한자리에... '2026 커리어 컨퍼런스, 캠퍼스 데이' 성료 - 머니투데이 - 머니투데이", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiakFVX3lxTE4wTnFHNGU5VTZ6NmQwR2tJMjhSN2hDeDBtZlVpam05bVRnbzhkQVlVTFoyTjFhQ0VRRXlRVTlPUlRWcldVTzlnblpJMjBhT0M3d1dEX3JmZVkzX0Y1akFLN0lWX0NOMDhuanfSAW9BVV95cUxNTDRhVWtjbzdET2RHNmxqbjU3ZjlzOHd0bWZNNkFfeGxYZVRtcVNTVHBfR09QWEJWOXdWSTNfU00zZDIya2VlSWlTMzdETHh0ZmhaUVVLSFA0X0c4dTMyejh0TkhEd1FXcUs0bzV0cUE?oc=5"}, {"title": "프로축구연맹, ‘잔디 관리 표준화’로 K리그 그라운드 환경이 변화하고 있다 - 일간스포츠", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiW0FVX3lxTE10UUtNaDV2MTd2OHJnbmZCbXJPR1ZOV2VhQy1iWFYxYnJWdGIzNV8wZjRxRjc3UFNRaFk0WFhVemFmMXdGWUE2cEJJSEFpTDRtaUVmWlJVelEtSGs?oc=5"}, {"title": "[오피셜] 'K리그1 최하위' 광주, 서울 이랜드서 호주 스트라이커 아이데일 영입 - 인터풋볼", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMidEFVX3lxTE9BM0dHUk9FMmhKVm5aV19ybkk2VXo5X0JmNkFwYnU3Y0RnOUFBZlNOSkhIU2RxaldFSXhPendyUnFtR3lSQlJRcFZQWE5qSUd1Ml9hbHBUUzNod05Xelc0b2VKaGRmVU03dFdXZmcxSDhMSy1x?oc=5"}, {"title": "[바모스, 월드컵] 붉은색으로 조금씩 물들어갈 과달라하라 - 매일신문", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiYkFVX3lxTFBxdDZNRzVMQ1kzNlo1aDFYWGFzb1diNGxTSjlQS3FqTXI0ckRuNi1ldTJyTW53OEM4THJuTTBINTNBLWh4TEVaY3NLRXZxRzRucFo0Rk1YLXRZcFU5RVhhTm9n?oc=5"}, {"title": "광주FC, ‘검증된 골잡이’ 아이데일 영입…후반기 반격 나선다 - 진일보", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMib0FVX3lxTE5tUEVQanBaQ0VwVUU0clZLLWJWa0JVZ2lsZnpsVENfdmo3bmhXR2pIWUVpWmFVZW1NdkR4elhsaTZpQklkajN6TUxzZ21YSTB6ZHd1YXVJRXhBS0tIOHBEXzR2U01UYkttVXJ1Mm94VQ?oc=5"}, {"title": "KBO, 아시안게임 야구 대표팀 최종 명단 유튜브 생중계 공개 - 네이트", "category": "sports_baseball", "link": "https://news.google.com/rss/articles/CBMiYEFVX3lxTE85eEFQZWFQeExEU0UtTFZLWGo4WDhGVGRpbWt3LTlmNzNLb3o4SUZ3UGl2WTB5SmhMSEZUVDdEQm53Q01JaXBIYjFOVHlJb2VLRjNBcU5JbEVTRkRna0Zlcg?oc=5"}, {"title": "대전 예수, 이런 혹평까지 듣다니…\"와이스 추락? KBO와 日 프로야구 수준 차 명확\"→NPB 거친 램버트는 휴스턴 연착륙 - 엑스포츠뉴스", "category": "sports_baseball", "link": "https://news.google.com/rss/articles/CBMiVEFVX3lxTE9CcXZXZGZaRVdJZUJZdWs3bXhWZTkta2pNWlNQN2h1b3FVajZzN2hmcG02U0tGNDRPZExicmQ0dFRUdXZYekJ3SW5fYXFGUUpyQy03bw?oc=5"}, {"title": "'박동원의 장기적인 대체자' 차세대 공수겸장 포수로 주목받는 이 선수, LG 이한림 근황(KBO) : 네이버 블로그 - Naver Blog", "category": "sports_baseball", "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTE81V2RGRkpZUDJ6bnZsSldBVkdTdXZBRnRUTlB0dmJUUllPYzhFZ2h6WnRYUGxKWkQ0S0d4OVlnU2dCRjJ5MW9PZ3cwS19acXljOVZLMGVyWlRQYnBo?oc=5"}, {"title": "한화 강백호 햄스트링에 묶인 사이 KIA 김도영 10타점 추가 - 연합뉴스", "category": "sports_baseball", "link": "https://news.google.com/rss/articles/CBMiW0FVX3lxTFBZUDlpYWVnTVlPYndjQ2NNOVZUcmxzRUtQLTFxNzZlcENWemltQlpjLVU5MFlDb25XLUVMb2JzMHNFaFBWM3gySXhsT2VSYkkwTTluN0ZwcEhSNW_SAWBBVV95cUxOQ2R3V0NsMk9SdlUwZHdiRC1RTDFUODlFVGNjcG13bko1Ui1lbmdQYjRRdDRUbjhKY1l1RU1KcndtUFJwYU1lOWJQb0VOSHN4aEk1enh3S1FjQ0FjT2JzaWk?oc=5"}, {"title": "팔도비빔면, 마케팅 눈길… KBO 손잡고 ‘먹는 재미’ 넘어 ‘참여 재미’로 - 이코노미톡뉴스", "category": "sports_baseball", "link": "https://news.google.com/rss/articles/CBMibEFVX3lxTE8yZnVwOFl3dkpDeUZGQTN5TFRyc2hHNU5RSVZXN0t5RG1pY2h1Q3U3eWZua3RJcVNnOV9kZmdUM1FEcW5HamgzelEtLUhMZnhwdkNROXd6eWZhcnJiX2x5d09WcGRfNXpEa2lHNQ?oc=5"}, {"title": "‘국가대표 외야수’ 민병헌, 일일 티볼강사로 변신…의정부 호암초·회룡초 'KBO 찾아가는 티볼교실' 개최 - 조선비즈 - Chosunbiz", "category": "sports_baseball", "link": "https://news.google.com/rss/articles/CBMigwFBVV95cUxNMFVMUGRmNUF4aFloSVlvWVItMlkxZzhHbXZsSlV4Slh5M3hZZWdHZ0lzMzdaOVVERGNMRVdZNnJNSlBSeUxSOGJGelZqWmh5Zk1UYUlpVHdyMlZwNTlXLUxNRzVZYnNNVmVHVVRhNWM3OXlEXzc1aXFNME9vLXEzMWI1MNIBlwFBVV95cUxNMGc0dmNMaXp4NW1hTWx5VU5odXNZdloxTmYxYWZFTlR3ZUVLRUlVNlNlVFBfandiT2RtZkVxU25SdGZRcU5JeGxKVjJTWVZubXNia05ZbWMzRWVFd3otVzRhamJBMXlqdWc3SDZhUTFEZWUtWEY4WUROUW9zdWpJQ3FrbW5za3ZsV2tvdTA1SUhnTkRMT0RF?oc=5"}, {"title": "18년 만에 바뀐 태극마크…한국 야구대표팀 새 BI 공개 - 세계일보", "category": "sports_baseball", "link": "https://news.google.com/rss/articles/CBMiWEFVX3lxTE54aXBiSF9hM2I1Y3ZiQ1RoejhzMmpRbmFid3ZXQ2F5c2JCaWl5RlVOOFo4WUpDUGx4eXBvN1U5bHl6cmJrNmYybE93R0ZPUDRfZHZsUEpHRTDSAVRBVV95cUxPLU1MNWw0eXBXRUlBVDNrTUl3a3h2R2VodXdmWm9uWU5LaEp0LVdSVE03M0ZFSTdlWmk3Nkpkd2FISVdkWnRzSkM5R3F1Qm1SaV9iWHk?oc=5"}, {"title": "[KBO] LG, SSG 꺾고 시즌 37승..연패 사슬 끊었다 - 한강타임즈", "category": "sports_baseball", "link": "https://news.google.com/rss/articles/CBMia0FVX3lxTFBTcUN1bDh6X0F0Mm9QYVZFOTFuQlJ6Q3hNV2NPUHFlTlJrQ214MGc4NmZjWjd5OXhCdWFUMnY2TUFBVTN2UzdIN3pNMmxKV0MtcVlwS09YdFpUWDlYSXExMGVqNHNGQ0J5dnRV?oc=5"}, {"title": "우정 파괴 게임이 현실로…순식간에 실책 3개, 5연패 빠진 롯데 - v.daum.net", "category": "sports_baseball", "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTFBLT2haMmx2Y1JoZzFxR2pDc0FqZHQtdGxfQVA5MmFUQ0pWSUlrZUtmRjFFQjIzQUdLS1c1eU1DV241RHJuN3dOdkRhX3VHaWc?oc=5"}, {"title": "\"미국 개인 훈련 대신 태극마크\" 이현중이 보여준 역대급 사명감... NBA 도전 앞두고도 대표팀 택했다 - v.daum.net", "category": "sports_basketball", "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE1uZkU2d3NieW11bXA3NVE5MXE5SmFzeEluQ1VMTkMzMlVORDBrZmJCMDRUMWNlekJoaG9XRlV5QmtpWlJ3SHBjYkx6YmcyLXc?oc=5"}, {"title": "[NBA FINAL] 17->17->28, OG 아누노비의 강해진 영향력 - v.daum.net", "category": "sports_basketball", "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTFAtRFhpTkJTY0VwYVJ1SERDN3BPcjdJcENBVklDS2ZVM1dyUWN6S1BGOThkc2x6Y2JSTFprUnRUM3ZqVHp1elRyTG9MZUdWTms?oc=5"}, {"title": "‘세계랭킹 1위’의 계보…숫자가 지배하는 골프의 역사 - 와이드스포츠", "category": "sports_golf", "link": "https://news.google.com/rss/articles/CBMib0FVX3lxTFBjcE8wZzQ2ekNMY2xKanhOLWNJLUQ5ajN2RGNycnY5bG1qNHVrNmc0MnFzenBCZjZlemlobEVzT0dNN1JVeVZKUUpGNVVOenZQektTUzV1dXY3X0I4UU5LMUJIVVdUUTd0eU1aVVdITQ?oc=5"}, {"title": "로리 매킬로이 “1년에 18~20개 대회면 충분”…선택과 집중의 일정 유지 - 와이드스포츠", "category": "sports_golf", "link": "https://news.google.com/rss/articles/CBMib0FVX3lxTE16cnZ4M0JKZ19vOGFwZWZSOWZ6WWZ6UEhtcVFwdmZrOWY3ckNJdm9NNGV1THZTNGF4eFdTWnVOTG1acHIxRjhSLTFwUC1Lek5nU1dDd0NpTW5sc1NtME90THJfa3VncmtKYmxxM0kyWQ?oc=5"}, {"title": "최고 시청률 28.4% 넘을까…초호화 캐스팅으로 첫방 전부터 반응 뜨거운 韓 드라마 ('연애의 재발견') - v.daum.net", "category": "entertainment", "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE55c0s2R3J6UlluYWFJQlJEZlhULUFEVHZ3b251UU5FMWc4WHRQeUkxQkdSTlpfdkdldm92RkpUWHFQYUhOZDBNeHVoZ2k0NzA?oc=5"}, {"title": "시청률 5.2%로 연일 상승세… '직진 고백' 터지자마자 4회 만에 난리 난 韓 드라마 ('닥터섬보이') - v.daum.net", "category": "entertainment", "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE9hUmdvOFNnMzlweDFMOGxhWml3VVV5Z21uZjFoeEp4elpLUVFac1NZcUtQelJMTVdsX3MwM2xZand3R0RFbHZwSjBOeF9QV00?oc=5"}, {"title": "5개월만 초고속 복귀한 '시청률 보증수표'…첫방 전부터 대박 조짐난 한국드라마 - 위키트리", "category": "entertainment", "link": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE9pZGw3QlZOZi1KZndtVHg0N1FpMVpWZ05uWDM0UVNvb01oZDBycmxRei00bG0wc1llS25lUTdqcGM5U2xJOVFLeGo5dlNEeFNhZXpuc29R?oc=5"}, {"title": "5.2% '수직 상승'… 또 자체 최고 찍고 2주 연속 시청률 1위 찍은 한국 드라마 - 위키트리", "category": "entertainment", "link": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE5NMnFLbkFEMmN4dkM0bU5qS3A5bkVsbkQ5YjZRYUx4dTVWNE00TS1rR2h6SFRVMlN5Z1FqbTRXRWhlN3VKa1lBZURsbDZtUU9mTUhqaTdB?oc=5"}, {"title": "시청률 18% 인기 이을까…3년 만 복귀작→'명품 조연' 합류로 주목 받은 韓 드라마 ('사랑이 온다') - v.daum.net", "category": "entertainment", "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE9Rem1VRDZKVGJSeU9qNXdxSlRlaE5oZUZQUjNGcG1FR2dTWjV3SnNaXzVXVFROUlZWWWJ3ZVdNa0ZzaGxrZ1NCbDlPaWFYbnc?oc=5"}, {"title": "이준영 '신입사원 강회장', 제대로 일냈다..시청률 8%+화제성 싹쓸이 - starnewskorea.com", "category": "entertainment", "link": "https://news.google.com/rss/articles/CBMic0FVX3lxTE1HbFF5bXZOcEZON21NRGI0cmE4eGRwSXZId2JNeEtzeS00QUg3d3g5bjZ6VHMteHpSOWJBRk4tNnpkcDJXZkFpOElQWjRIcDhra0wtTGFzQV9rRGVOUThkVTlCczI0Y1dPV2g2bHN6OWNkbDQ?oc=5"}, {"title": "최고 시청률 28.4% 넘을까…초호화 캐스팅으로 첫방 전부터 반응 뜨거운 韓 드라마 ('연애의 재발견') - 네이트", "category": "entertainment", "link": "https://news.google.com/rss/articles/CBMiU0FVX3lxTE90YUJhWHlJUnN6Y1Jua3ZOVmRCOF9RVU5TRXc5NDJVRjZfdHozZG9ZQ3QyTzdTV2RXdTZrejFtTEU2a2hzamhUZ0hDMjk3em1ReGVF?oc=5"}, {"title": "임지연♥허남준도 제칠까…4회 만에 8.2%, 시청률 터진 '신입사원' 토일극 강자 노린다 - 텐아시아", "category": "entertainment", "link": "https://news.google.com/rss/articles/CBMiW0FVX3lxTE43TmI3SktOUUpoRFRSQVltNkZsZGtRX1d2X0toVGlXV2R3UUUtQi10UGE3VEZDQThkU0dFWnRiekY3UUwtRGoxVFZzX1ZabGNyakpwT2tBZ1NudWM?oc=5"}, {"title": "종영 앞두고 터졌다…SBS·넷플릭스 다 제치고 1위 등극한 tvN 한국 드라마 - 위키트리", "category": "entertainment", "link": "https://news.google.com/rss/articles/CBMiVkFVX3lxTFB4UEs5Y004Njd5VDhHNFRJWXYwYVIxdlVrZHZLN0lFS21DSkVvS2JyTEZPRjMxOFYxdlNVV3dWd3hzTjJHRjlNWXFqRlRuOG5Rb2dsUE9R?oc=5"}, {"title": "셀럽들도 사용하는 화잘먹 패드💗 핑크 글로우 패드 체험단", "category": "social", "link": "https://theqoo.net/event/4237966074"}, {"title": "[공지] 언금 공지 해제", "category": "social", "link": "https://theqoo.net/hot/3516074637"}, {"title": "📢📢【매우중요】 비밀번호 변경 권장 (현재 팝업 알림중)", "category": "social", "link": "https://theqoo.net/hot/3176100535"}, {"title": "공지가 길다면 한번씩 눌러서 읽어주시면 됩니다.", "category": "social", "link": "https://theqoo.net/hot/2984500576"}, {"title": "◤더쿠 이용 규칙◢ [스퀘어 정치글은 정치 카테고리에]", "category": "social", "link": "https://theqoo.net/hot/1383792790"}, {"title": "탄핵 시위며 남태령이며 지금날씨였으면 다들 기쁘게 시위했지 그 때 얼어죽을 날씨에 고립되어서 다들 돕고 난리였는데 강남 한복판 올공에서 시위한답시고 개꼴값 떨고 밥달라고 밥줘충짓하고 지나가는 여자 불법촬영에 시비걸고 씨발 진짜 개역겨워", "category": "social", "link": "https://theqoo.net/hot/4238604076"}, {"title": "아이바오-러바오 합방/출산 앙딱정 해줌.. 일부러 임신 시키는게 아님", "category": "social", "link": "https://theqoo.net/hot/4238572741"}, {"title": "\"좌도 아니고 우도 아닙니다 전 무조건 윤어게인 외칠겁니다 이것도 극우라고 하실건가요?\"", "category": "social", "link": "https://theqoo.net/hot/4238546716"}, {"title": "[단독]올림픽공원 시위 장기화에…체육공단, 대관 취소 땐 전액 환불", "category": "social", "link": "https://theqoo.net/hot/4238507935"}, {"title": "'이혼' 린, 변기 보이는 화장실서 생활..결국 해명 \"공황 올 것 같아서\" [스타이슈]", "category": "social", "link": "https://theqoo.net/hot/4238496601"}, {"title": "[속보] 이 대통령 “냉정한 국민 평가 겸허히 받아들여…국민께 죄송”", "category": "social", "link": "https://theqoo.net/hot/4238493714"}, {"title": "옛날에는 수위 아저씨가 환자 분류를 했다는 응급실", "category": "social", "link": "https://theqoo.net/hot/4238462554"}, {"title": "손흥민, '지켜봐야할 월드컵 스타 26인' 선정 - 네이트", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTFBQRWgwVFkwQUFWNmt1WkQtekNDR2c3bnB2WTJicjhzTXIyN0VQVE1pQkpZVWJNRDI1QXY2ajhPRXdmRjNzVDhZbjZhWG5kS0hCWjZORllhdlRnMDVj?oc=5"}, {"title": "[과달라하라 리포트] 멕시코 현지 방송이 주목하는 '판타스틱 4' 손흥민-이강인-김민재-황희찬…이름은 틀려도 소속팀은 '대문짝' - 네이트", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTFBaYk1sLUJfaFR0ZEZTV0Q1ZV9vRTBfc2lReG9Wbm5TcEhBbk04LTBuWnZhY0hlOC13YmNLRzBic0s5ZTNjOVRWVVFJU21YbzdaT1NnOEZSaGFFMmtI?oc=5"}, {"title": "'시차·무관심' 악재 속…식품업계, '손흥민' 앞세워 월드컵 불씨 살린다 - 뉴스1", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiX0FVX3lxTFBOUWpTQXBRY3RSU0loX1NGMDZMamVvWjR2N3kyWlVFdzFud0hwamRjSnBVTU4xX2xLQnh2ejZxYnJnUWdwNEFsZjh4SG54eFo0UTlodldlNU5KckxzNVZr?oc=5"}, {"title": "\"에릭센 건강해야 해!\" 응원했던 손흥민, 이번에는 '좋아요' 꾹…'두 번째 심정지' 에릭센 응원했다 - 엑스포츠뉴스", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiVEFVX3lxTE9ZdkJOdEFCRkhJSHd2NmRxMUd4YmY3em1tZE8xdDFXSnZJX28xZktMTHhSYktGdDFZV0J2MmY0VC03Y2xNNlFhZW1kNDEzTWJUUkxPYQ?oc=5"}, {"title": "손흥민, 야후스포츠 선정 '지켜봐야 할 26명 스타' - SBS 뉴스", "category": "sports_soccer", "link": "https://news.google.com/rss/articles/CBMiakFVX3lxTE5BRlpNRERqWTM5WUdtclZBYkxzODlNWTNBSUVZVld0b05fcTNOanM2UDllSkViTjYzNkkzOWhCS1E1N3EtMnV0UTd4ZHdLR3dTMm03YUs2SGRsZHNONUtBOW9STVFaM2ZZX0E?oc=5"}, {"title": "[MD포토] 'LG 새 외국인 투수' 약셀 리오스, 'KBO리그 기다려!' - 네이트", "category": "sports_baseball", "link": "https://news.google.com/rss/articles/CBMiaEFVX3lxTE8yU0VjWlE1SC1WYmlmZVB0NFVnVl81T2dMdS1rejZodnNqenpYWjJJcFhELV9RaUwyOEJXQ3UtUkduUW1rN216TW9EMlhGcXpaX2FBMk9qSWpoQ0xWQlhrdWoyYWE1LU12?oc=5"}, {"title": "KBO 사무국, 아시안게임 야구 대표팀 명단 발표 생중계 - 연합뉴스", "category": "sports_baseball", "link": "https://news.google.com/rss/articles/CBMiW0FVX3lxTE84MjByNzhER3lNZFd1RTFaX0h6aUo0b1d1R25TMUtIb0l6MTVjX0otSmhFQjAwUXlieUJHajBDYmRLZVRzWVNNUVZwLS1kTjhzWW5ONnVyZWU2OE3SAWBBVV95cUxOY2xoMWp5c0tWYk85TFdhR3BXVUxTb1c2TFVaRHZrSUtwT2RLSzY4UlQ2R2dmNXRTZ29Xb2Izb2otek0xWnlyUnZrclBIdnlHU2ZWUXlWdU10MkUxYXN4RlA?oc=5"}, {"title": "류지현호, 2026 AG 최종 명단... 크보 라이브로 이원 생중계 공개한다 - 머니투데이 - 머니투데이", "category": "sports_baseball", "link": "https://news.google.com/rss/articles/CBMiakFVX3lxTE9XVjRsYnJEc1FRbjdHRVA1Nkk2bUhmdTdWUmotTHJmVGhkcG04d015ZGtTVHNSNHF4R0xTd3lmanlnWWlMd21pcjFYNUxkd2RaVDRoeXoxZGNxdkI3SGxWV1lNUWdUdndHdFHSAW9BVV95cUxPU1dvRmhaMWNic0lWVWxlNThGeGVMYjRDU2RldldsV1dtMlp1NGhXVUp5bWc2dUxrV2NtcFc2ZkJqZDVYZHFwY0VESHc2VTdITHc5WFdmVFB4aklwTWxNOWNYMXVWTlJ5VGZjUkpBZ0E?oc=5"}, {"title": "한화 20살 국가대표 성장통, 68세 노감독 어떻게 바라볼까…\"WBC 다녀오며 생각 많았다, 야구 알면 알수록 어렵다\" - v.daum.net", "category": "sports_baseball", "link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE1ERkZnMGVqYnVNRUtrU0tmTkh3SzZyaTJzbnVsdExuajR5MmRMM3lpcE5SdjduUE1VT2pPSGt0VWIwbV96WGRuc0h5MVkydGs?oc=5"}, {"title": "KBO, 나고아 AG 야구 대표팀 최종 명단 기자회견 이원 생중계 - 네이트", "category": "sports_baseball", "link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTE92TWxVa1pSUmZlblo4c2RYcEdrOW9EVldoSGlkV0JUVFRhZzdCc1U0dTktYlV1aHV0TlBGTUllLUlkMmtuZ0xDalM3MWNBckxkVzgwTHl1OUI0T2Jv?oc=5"}, {"title": "‘국가대표 외야수’ 민병헌, 일일 티볼강사로 변신…의정부 호암초·회룡초 'KBO 찾아가는 티볼교실' 개최 - 머니투데이 - 머니투데이", "category": "sports_baseball", "link": "https://news.google.com/rss/articles/CBMiakFVX3lxTE1FX2FUbnd6X3FzTHZOUVktTThBa0MxUUdyWDZUWDNwc0o0VGFlMHBjR24tOW9PYVM4VmFyUDNoNnZVWndBRjJUTlF2WnVkc2JoTkJrR3lLX2JYajR5el9FSkJSUmZ2enJka1HSAW9BVV95cUxOZy1OcGxKUGtfVVZMREFsLVdMc3hxdTEzYzlPTS11RjUzVk8zUWNIVTZTVktXSm9pb2dvVWpkU1hGTlhlX0swdnpUSGJEYzd0MXFEVzZsMFJUaURET0l5VEQxZXZ2a2puWjVzckFtUU0?oc=5"}, {"title": "한 일본인이 회사 젊은 동료에게 들은 고나리", "category": "social", "link": "https://theqoo.net/hot/4238610161"}], "markets": [{"issue_title": "[축구] 손흥민, '지켜봐야할 월드컵 스타 26인' 선정 - 네이트", "market_type": "prediction", "question": "손흥민, 다음 2026 북중미 월드컵에서 '베스트 11'에 선정될 가능성이 있을까요?", "source_link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTFBQRWgwVFkwQUFWNmt1WkQtekNDR2c3bnB2WTJicjhzTXIyN0VQVE1pQkpZVWJNRDI1QXY2ajhPRXdmRjNzVDhZbjZhWG5kS0hCWjZORllhdlRnMDVj?oc=5", "marketability_score": 5}, {"issue_title": "[축구] 손흥민, '지켜봐야할 월드컵 스타 26인' 선정 - 네이트", "market_type": "numeric", "question": "손흥민은 다음 2026 북중미 월드컵 본선에서 총 몇 골을 기록할까요?", "source_link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTFBQRWgwVFkwQUFWNmt1WkQtekNDR2c3bnB2WTJicjhzTXIyN0VQVE1pQkpZVWJNRDI1QXY2ajhPRXdmRjNzVDhZbjZhWG5kS0hCWjZORllhdlRnMDVj?oc=5", "marketability_score": 5}, {"issue_title": "[축구] [과달라하라 리포트] 멕시코 현지 방송이 주목하는 '판타스틱 4' 손흥민-이강인-김민재-황희찬…이름은 틀려도 소속팀은 '대문짝' - 네이트", "market_type": "ranking", "question": "다음 월드컵에서 한국 대표팀 '판타스틱 4' (손흥민, 이강인, 김민재, 황희찬) 중 가장 높은 공격포인트(골+도움)를 기록할 선수는?", "source_link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTFBaYk1sLUJfaFR0ZEZTV0Q1ZV9vRTBfc2lReG9Wbm5TcEhBbk04LTBuWnZhY0hlOC13YmNLRzBic0s5ZTNjOVRWVVFJU21YbzdaT1NnOEZSaGFFMmtI?oc=5", "marketability_score": 5}, {"issue_title": "[축구] 이강인의 파격 결심, 올여름 PSG와 무조건 결별! 아틀레티코행 '열망'…\"새로운 환경으로 옮길 때\"→이적료 '440억' 언급 - 네이트", "market_type": "prediction", "question": "이강인 선수, 이번 여름 이적시장에서 아틀레티코 마드리드로 이적할까요?", "source_link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTE9JMnRaSmYyZXB2aTROT0cyRmdVblNFcV9zT1NaZmdKN0ljeHAySVkxVndCNG81ekNuZGVaVDZhMV9IUFZUOWpwY0xGUDhUU3E4UnNjN2dxWDJEckZF?oc=5", "marketability_score": 5}, {"issue_title": "[야구] KBO 사무국, 아시안게임 야구 대표팀 명단 발표 생중계 - 연합뉴스", "market_type": "prediction", "question": "키움 히어로즈 이정후 선수, 2026 아시안게임 야구 대표팀 최종 엔트리에 포함될까요?", "source_link": "https://news.google.com/rss/articles/CBMiW0FVX3lxTE84MjByNzhER3lNZFd1RTFaX0h6aUo0b1d1R25TMUtIb0l6MTVjX0otSmhFQjAwUXlieUJHajBDYmRLZVRzWVNNUVZwLS1kTjhzWW5ONnVyZWU2OE3SAWBBVV95cUxOY2xoMWp5c0tWYk85TFdhR3BXVUxTb1c2TFVaRHZrSUtwT2RLSzY4UlQ2R2dmNXRTZ29Xb2Izb2otek0xWnlyUnZrclBIdnlHU2ZWUXlWdU10MkUxYXN4RlA?oc=5", "marketability_score": 5}, {"issue_title": "손흥민 마지막 월드컵에 대한 기대감", "market_type": "vote", "question": "손흥민 선수가 '마지막 월드컵이 될 수도 있다'고 언급했어. 그의 국대 커리어 마무리에 대한 당신의 생각은?", "source_link": "", "marketability_score": 5}, {"issue_title": "재택근무 vs. 사무실 출근", "market_type": "vote", "question": "주 5일 재택근무 vs. 주 5일 사무실 출근, 당신의 워라밸 만족도는 어디서 높을까?", "source_link": "", "marketability_score": 5}, {"issue_title": "영끌족과 부동산 시장", "market_type": "prediction", "question": "2030년, 서울 아파트 평균 매매가가 현재보다 '오를까, 내릴까'?", "source_link": "", "marketability_score": 5}, {"issue_title": "조용한 퇴사 (Quiet Quitting)", "market_type": "vote", "question": "'조용한 퇴사' 트렌드, 당신은 어떻게 생각하나요?", "source_link": "", "marketability_score": 5}, {"issue_title": "[축구] 손흥민 충성한 10년 날렸으면서, \"축구가 최우선 아니었다\" 토트넘 CEO 충격 폭로→소 잃고 외양간 고친다 '4100억 투자 예고' - sportschosun.com", "market_type": "prediction", "question": "4100억 투자 예고, 토트넘은 다음 시즌 EPL 챔피언스리그 진출권(4위 이내)을 획득할 수 있을까요?", "source_link": "https://news.google.com/rss/articles/CBMifkFVX3lxTE96WjFoZ2V6Y2pyM3N6b2FjMGdKVHRyM0pIZG9aX2VZVFlPODhWMDNzWlRUTWNveXNpZEh5eTJoU3p1ZWFWZVVfSHpqem5BYkNpTXo0U21rVVg4NDZoRGZzeElnMUc0OFJjcnJrdjQwU2lFUDFtaXJ2bWlLeDN1d9IBd0FVX3lxTE4td3p3Rm5JcEpuT1BRS3d1V1RJY1VNaHlENXZtUmJZbmMzMjBxY3Q1dUdwNzRSRmJjdlpBb2Z4d0ZrbXh1amRpaFlVVlZsY2EzeWthX2t2d0M1Y1VBUUUxLUlBQm9ZUEZEMVJPcHNCQkZBUEFfZEZn?oc=5", "marketability_score": 4}, {"issue_title": "[축구] \"손흥민 팬심 저격\" 파리바게뜨, 'LAFC 리유저블백' 프로모션 진행 - 뉴시스", "market_type": "prediction", "question": "파리바게뜨 '손흥민 리유저블백' 프로모션은 한정 수량 완판으로 조기 종료될까요?", "source_link": "https://news.google.com/rss/articles/CBMiYEFVX3lxTE9pVXoyT3dlXzVqN09qRW5LREd2Z1hHZEpkT1RhaDhsTXNpWThQUUhwWWh5V1g2c2sxVlVJXzNyQ2FyWDVCdDZGT2lGWS1ld2xkRU8xaUEwZ1NVSXJ5RU5XN9IBeEFVX3lxTE1DUU4tUllpb1djWlQzb3gyT2U0UEpwMVV3Q21aclUyQ0lZbkYyaWxKQTJGa3hJeXdobGpIeVk0N1JQR0Z3eW5vYnFjYVZHV2s0RURxTHEwNF9KZ3NZOFJJRWpJS2VjREZ2SkItaFBUeFo0R2dFZkNybw?oc=5", "marketability_score": 4}, {"issue_title": "[축구] 손흥민, 마지막 월드컵 나선다…메시, 호날두도 `라스트 댄스` - 매일신문", "market_type": "vote", "question": "다음 2026 북중미 월드컵이 손흥민 선수의 '마지막 월드컵'이 될 것이라고 생각하시나요?", "source_link": "https://news.google.com/rss/articles/CBMiYkFVX3lxTE1CV1FpZF9aaHdyUzRoMjJNLVNMMGNRRkl6ZGJtUEdzdUNoV245el9mZFVxTUV0VUo2M21MZjNQWnU2UTBlNkdzTng2d2FNcUkzX3Y3MklVTmlPel8zT1pnaW53?oc=5", "marketability_score": 4}, {"issue_title": "[축구] \"내게 마지막 월드컵 될 수도 있다\" 손흥민 작심 고백…15년 태극마크 여정 끝자락, 라스트 댄스 향한 진심 - v.daum.net", "market_type": "vote", "question": "손흥민 선수가 언급한 '마지막 월드컵'은 2026 북중미 월드컵이 될까요?", "source_link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTFB6NUZKYkp1UXVock10TDZGNlNrbWM0S2pZbGI1Y1BiWFBocm9nQnZIN1hkdkNldXB0RFpMeXJ2dWMzb2hiZUhVU1hSTVVxNGM?oc=5", "marketability_score": 4}, {"issue_title": "[축구] 이강인의 파격 결심, 올여름 PSG와 무조건 결별! 아틀레티코행 '열망'…\"새로운 환경으로 옮길 때\"→이적료 '440억' 언급 - 네이트", "market_type": "numeric", "question": "이강인 선수의 이번 여름 이적료는 440억원을 넘을까요?", "source_link": "https://news.google.com/rss/articles/CBMiXEFVX3lxTE9JMnRaSmYyZXB2aTROT0cyRmdVblNFcV9zT1NaZmdKN0ljeHAySVkxVndCNG81ekNuZGVaVDZhMV9IUFZUOWpwY0xGUDhUU3E4UnNjN2dxWDJEckZF?oc=5", "marketability_score": 4}, {"issue_title": "[야구] [MD포토] 'LG 새 외국인 투수' 약셀 리오스, 'KBO리그 기다려!' - 네이트", "market_type": "numeric", "question": "LG 트윈스의 새 외국인 투수 약셀 리오스, 이번 시즌 몇 승을 거둘까요?", "source_link": "https://news.google.com/rss/articles/CBMiaEFVX3lxTE8yU0VjWlE1SC1WYmlmZVB0NFVnVl81T2dMdS1rejZodnNqenpYWjJJcFhELV9RaUwyOEJXQ3UtUkduUW1rN216TW9EMlhGcXpaX2FBMk9qSWpoQ0xWQlhrdWoyYWE1LU12?oc=5", "marketability_score": 4}, {"issue_title": "[야구] 한화 20살 국가대표 성장통, 68세 노감독 어떻게 바라볼까…\"WBC 다녀오며 생각 많았다, 야구 알면 알수록 어렵다\" - v.daum.net", "market_type": "numeric", "question": "한화 이글스 '문동주', 이번 시즌 최종 몇 승을 기록할까요?", "source_link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE1ERkZnMGVqYnVNRUtrU0tmTkh3SzZyaTJzbnVsdExuajR5MmRMM3lpcE5SdjduUE1VT2pPSGt0VWIwbV96WGRuc0h5MVkydGs?oc=5", "marketability_score": 4}, {"issue_title": "[농구] \"미국 개인 훈련 대신 태극마크\" 이현중이 보여준 역대급 사명감... NBA 도전 앞두고도 대표팀 택했다 - v.daum.net", "market_type": "prediction", "question": "이현중 선수, 태극마크 우선의 뜨거운 사명감이 NBA 입성으로 이어질까요?", "source_link": "https://news.google.com/rss/articles/CBMiT0FVX3lxTE1uZkU2d3NieW11bXA3NVE5MXE5SmFzeEluQ1VMTkMzMlVORDBrZmJCMDRUMWNlekJoaG9XRlV5QmtpWlJ3SHBjYkx6YmcyLXc?oc=5", "marketability_score": 4}, {"issue_title": "[골프] 로리 매킬로이 “1년에 18~20개 대회면 충분”…선택과 집중의 일정 유지 - 와이드스포츠", "market_type": "numeric", "question": "로리 매킬로이의 '선택과 집중' 전략! 올해 메이저 대회 몇 승을 거둘까요?", "source_link": "https://news.google.com/rss/articles/CBMib0FVX3lxTE16cnZ4M0JKZ19vOGFwZWZSOWZ6WWZ6UEhtcVFwdmZrOWY3ckNJdm9NNGV1THZTNGF4eFdTWnVOTG1acHIxRjhSLTFwUC1Lek5nU1dDd0NpTW5sc1NtME90THJfa3VncmtKYmxxM0kyWQ?oc=5", "marketability_score": 4}, {"issue_title": "[사회/커뮤니티] 아이바오-러바오 합방/출산 앙딱정 해줌.. 일부러 임신 시키는게 아님", "market_type": "timing", "question": "사랑스러운 푸바오의 동생을 또 만날 수 있을까? 아이바오의 다음 출산은 언제쯤일까요?", "source_link": "https://theqoo.net/hot/4238572741", "marketability_score": 4}, {"issue_title": "AI 기술 발전과 일자리 변화", "market_type": "prediction", "question": "챗GPT 같은 AI가 2030년까지 전문직의 '50% 이상'을 대체할 것이라고 생각해?", "source_link": "", "marketability_score": 4}, {"issue_title": "N잡러 트렌드", "market_type": "vote", "question": "본업 외 N잡! 과연 '선택'일까, '필수'일까? 당신의 생각은?", "source_link": "", "marketability_score": 4}, {"issue_title": "소개팅 앱 만남의 한계", "market_type": "vote", "question": "만약 소개팅 앱에서 만난 상대가 알고 보니 나와 같은 회사 동료의 '전 애인'이었다면, 이 만남을 계속 이어갈 거야?", "source_link": "", "marketability_score": 4}, {"issue_title": "플렉스 vs. 짠테크", "market_type": "vote", "question": "소확행을 위한 '플렉스' vs. 미래를 위한 '짠테크', 당신의 소비 가치관은?", "source_link": "", "marketability_score": 4}, {"issue_title": "비빔면 찰떡궁합 토핑", "market_type": "ranking", "question": "'비빔면엔 고기'는 옛말! 요즘 비빔면과 가장 잘 어울리는 찰떡궁합 토핑 1위는?", "source_link": "", "marketability_score": 4}, {"issue_title": "인플루언서 마케팅과 뒷광고 논란", "market_type": "vote", "question": "내가 팔로우하는 인플루언서가 '뒷광고' 논란에 휩싸였다면? 당신의 반응은?", "source_link": "", "marketability_score": 4}, {"issue_title": "기후 위기와 친환경 소비", "market_type": "vote", "question": "비싸더라도 '친환경 제품'을 선택할 것인가, 합리적인 '가성비 제품'을 선택할 것인가?", "source_link": "", "marketability_score": 4}, {"issue_title": "데이팅 리얼리티 쇼 과몰입", "market_type": "ranking", "question": "요즘 데이팅 리얼리티 쇼 출연자 중, 당신이 가장 응원하는 '찐사랑' 후보 커플 1위는? (가상 프로그램 기준)", "source_link": "", "marketability_score": 4}, {"issue_title": "[축구] '시차·무관심' 악재 속…식품업계, '손흥민' 앞세워 월드컵 불씨 살린다 - 뉴스1", "market_type": "vote", "question": "식품업계의 '손흥민 마케팅'이 시차 등으로 인한 다음 월드컵 무관심을 정말 극복할 수 있을까요?", "source_link": "https://news.google.com/rss/articles/CBMiX0FVX3lxTFBOUWpTQXBRY3RSU0loX1NGMDZMamVvWjR2N3kyWlVFdzFud0hwamRjSnBVTU4xX2xLQnh2ejZxYnJnUWdwNEFsZjh4SG54eFo0UTlodldlNU5KckxzNVZr?oc=5", "marketability_score": 3}, {"issue_title": "K-드라마 속 로맨스 판타지 현실 대입", "market_type": "vote", "question": "로맨스 드라마 속 '재벌 3세 남주'와 '짠내 나는 여주'의 만남, 현실에서도 성공할 수 있을까?", "source_link": "", "marketability_score": 3}, {"issue_title": "자율주행 상용화", "market_type": "timing", "question": "완벽한 레벨5 자율주행 자동차, 우리가 직접 타볼 수 있는 건 몇 년 뒤부터일까?", "source_link": "", "marketability_score": 3}, {"issue_title": "펫팸족 증가와 반려동물 양육 비용", "market_type": "numeric", "question": "반려동물 한 달 키우는 데 드는 양육 비용, 평균 얼마라고 생각하세요?", "source_link": "", "marketability_score": 3}]}};
+    const TYPE_COLORS = {"prediction": "#4F46E5", "vote": "#059669", "ranking": "#D97706", "numeric": "#DC2626", "timing": "#7C3AED"};
+    const TYPE_KO = {"prediction": "예측", "vote": "투표", "ranking": "랭킹 예측", "numeric": "수치 예측", "timing": "타이밍 예측"};
+
+    function loadHistoryDate(date) {
+      const data = HISTORY_DATA[date];
+      if (!data) return;
+
+      document.getElementById('issueCount').textContent = '(' + data.issues.length + '개)';
+      document.getElementById('marketCount').textContent = '(' + data.markets.length + '개)';
+      document.getElementById('historyStats').textContent = '이슈 ' + data.issues.length + '개 · 마켓 ' + data.markets.length + '개';
+
+      document.getElementById('issueList').innerHTML = data.issues.map(issue => {
+        const linkHtml = issue.link
+          ? '<a href="' + issue.link + '" target="_blank" style="color:#4F46E5;font-size:11px;white-space:nowrap;margin-left:6px">원문↗</a>'
+          : '';
+        return '<div class="issue-row">' +
+          '<span class="cat-badge">' + (issue.category || '') + '</span>' +
+          '<span class="issue-title-text">' + issue.title + '</span>' +
+          linkHtml + '</div>';
+      }).join('');
+
+      document.getElementById('marketList').innerHTML = data.markets.map((m, i) => {
+        const key = 'applied_' + date + '_' + i;
+        const isApplied = localStorage.getItem(key) === 'true';
+        const color = TYPE_COLORS[m.market_type] || '#6B7280';
+        const typeLabel = TYPE_KO[m.market_type] || m.market_type;
+        const linkHtml = m.source_link
+          ? '<a href="' + m.source_link + '" target="_blank" style="color:#4F46E5;font-size:11px">원문↗</a>'
+          : '';
+        const appliedBadge = isApplied
+          ? '<span style="background:#DCFCE7;color:#16A34A;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700">✓ 적용완료</span>'
+          : '';
+        return '<div class="market-row' + (isApplied ? ' applied' : '') + '" id="mrow-' + date + '-' + i + '">' +
+          '<div style="display:flex;align-items:flex-start;gap:8px">' +
+          '<input type="checkbox"' + (isApplied ? ' checked' : '') + ' onchange="toggleApplied('' + date + '',' + i + ',this.checked)" style="margin-top:4px;cursor:pointer;accent-color:#4F46E5;flex-shrink:0">' +
+          '<div style="flex:1;min-width:0">' +
+          '<div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap">' +
+          '<span style="background:' + color + ';color:white;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700">' + typeLabel + '</span>' +
+          appliedBadge + linkHtml +
+          '</div>' +
+          '<p style="margin:0;font-size:13px;font-weight:600;color:#1E293B;line-height:1.4">' + m.question + '</p>' +
+          '</div></div></div>';
+      }).join('');
+    }
+
+    function toggleApplied(date, idx, checked) {
+      localStorage.setItem('applied_' + date + '_' + idx, checked ? 'true' : 'false');
+      loadHistoryDate(date);
+    }
+
+    const firstDate = document.getElementById('historyDateSelect') && document.getElementById('historyDateSelect').value;
+    if (firstDate) loadHistoryDate(firstDate);
+    </script>
+    
+  </div>
+</div>
+
+<script>
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  btn.classList.add('active');
+}
+function filterCards(type, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.market-card').forEach(card => {
+    card.classList.toggle('hidden', type !== 'all' && card.dataset.type !== type);
+  });
+}
+function filterCreative(btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.market-card').forEach(card => {
+    card.classList.toggle('hidden', card.dataset.sourcetype !== 'creative');
+  });
+}
+function sortCards(by) {
+  const grid = document.getElementById('cardsGrid');
+  const cards = Array.from(grid.children);
+  cards.sort((a, b) => {
+    if (by === 'score') return parseInt(b.dataset.score) - parseInt(a.dataset.score);
+    if (by === 'type') return a.dataset.type.localeCompare(b.dataset.type);
+    return 0;
+  });
+  cards.forEach(c => grid.appendChild(c));
+}
+</script>
+</body>
+</html>
