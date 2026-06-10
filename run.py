@@ -2,6 +2,13 @@
 폴리볼 이슈 수집 자동화 메인 실행 파일
 사용법: python run.py [--hours 24] [--no-collect] [--no-process]
 """
+import sys
+import io
+# Windows cp949 콘솔에서 UTF-8 출력 강제 (이모지/화살표 깨짐 방지)
+if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
 import argparse
 import json
 import os
@@ -18,7 +25,7 @@ def load_locked_markets():
     if os.path.exists(path):
         with open(path, encoding="utf-8") as f:
             locked = json.load(f)
-            print(f"  🔒 잠금 마켓 {len(locked)}개 보존")
+            print(f"  [LOCK] 잠금 마켓 {len(locked)}개 보존")
             return locked
     return []
 
