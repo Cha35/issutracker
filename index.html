@@ -48,6 +48,12 @@
   .search-count { font-size: 12px; color: #94A3B8; white-space: nowrap; }
   select { background: white; border: 1px solid #E2E8F0; color: #374151; padding: 6px 12px; border-radius: 8px; font-size: 13px; cursor: pointer; }
   .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+  .cards-area { min-height: 58vh; }
+  .no-results { text-align: center; color: #94A3B8; font-size: 14px; padding: 80px 20px; }
+  .collapsible { max-height: 84px; overflow: hidden; transition: max-height 0.25s ease; }
+  .collapsible.expanded { max-height: 2000px; }
+  .more-btn { margin-top: 8px; background: none; border: none; color: #4F46E5; font-size: 12px; font-weight: 600; cursor: pointer; padding: 2px 0; }
+  .more-btn:hover { text-decoration: underline; }
   .market-card { background: #FAFAFA; border-radius: 12px; border: 1px solid #E2E8F0; overflow: hidden; transition: transform 0.15s, box-shadow 0.15s; position: relative; }
   .market-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.08); }
   .market-card.hidden { display: none; }
@@ -194,7 +200,7 @@
   <div class="header-right">
     <span class="sync-status" id="syncStatus"></span>
     <button class="sync-btn" id="syncBtn" onclick="doSync()" title="새 이슈를 수집하고 마켓 초안을 갱신합니다 (잠금 카드 유지)">🔄 동기화</button>
-    <span class="timestamp">마지막 수집: 2026-06-11 20:09</span>
+    <span class="timestamp">마지막 수집: 2026-06-11 20:30</span>
   </div>
 </header>
 
@@ -260,7 +266,8 @@
         <h2>마켓 유형 분포</h2>
         <div style="margin-bottom:16px"><span class="stat-pill" style="background:#DC2626">수치 예측 1개</span><span class="stat-pill" style="background:#4F46E5">예측 24개</span><span class="stat-pill" style="background:#059669">투표 23개</span><span class="stat-pill" style="background:#DB2777">스낵 21개</span></div>
         <h2 style="margin-top:16px">타겟 분포</h2>
-        <div><span class="stat-pill" style="background:#6B7280">공통 2개</span><span class="stat-pill" style="background:#6B7280">KBO 프로야구 팬, 스포츠 예측러 1개</span><span class="stat-pill" style="background:#6B7280">KBO 리그 코어 팬층 1개</span><span class="stat-pill" style="background:#6B7280">2030 축구 팬 1개</span><span class="stat-pill" style="background:#6B7280">축구 고관여 팬 1개</span><span class="stat-pill" style="background:#6B7280">K리그 직관/집관러, 각 구단 팬덤 1개</span><span class="stat-pill" style="background:#6B7280">2030 주식 투자자, 반도체 산업 관심층 1개</span><span class="stat-pill" style="background:#6B7280">2030 주식 투자자 및 직장인 1개</span><span class="stat-pill" style="background:#6B7280">2030 주린이 및 예비 투자자 1개</span><span class="stat-pill" style="background:#6B7280">재테크에 관심 있는 2030 직장인 1개</span><span class="stat-pill" style="background:#6B7280">2030 코인 투자자 및 예비 투자자 1개</span><span class="stat-pill" style="background:#6B7280">코인 투자로 스트레스 받아본 1020 1개</span><span class="stat-pill" style="background:#6B7280">Z세대 스마트폰 헤비 유저 1개</span><span class="stat-pill" style="background:#6B7280">건강 및 웨어러블 기기에 관심 있는 2030 1개</span><span class="stat-pill" style="background:#6B7280">2030 주식/바이오 투자자 1개</span><span class="stat-pill" style="background:#6B7280">월드컵 시즌만 되면 축구 보는 2030 남녀 1개</span><span class="stat-pill" style="background:#6B7280">Z세대 드라마 과몰입러 1개</span><span class="stat-pill" style="background:#6B7280">사회 이슈에 관심 많은 2030 1개</span><span class="stat-pill" style="background:#6B7280">SNS 트렌드에 민감하고 자기계발에 관심 많은 2030 1개</span><span class="stat-pill" style="background:#6B7280">팝업스토어에 가봤거나 갈 예정인 1030 소비자 1개</span><span class="stat-pill" style="background:#6B7280">팀 단위 업무 경험이 있는 2030 직장인 1개</span><span class="stat-pill" style="background:#6B7280">2030 사회초년생 및 직장인 1개</span><span class="stat-pill" style="background:#6B7280">주 4일제 도입을 현실적으로 고민하는 2030 직장인 1개</span><span class="stat-pill" style="background:#6B7280">사회 이슈와 기술 윤리에 관심 있는 2030 1개</span><span class="stat-pill" style="background:#6B7280">2030 직장인 및 취준생 1개</span><span class="stat-pill" style="background:#6B7280">갓생을 꿈꾸는 1020 학생 및 주니어 직장인 1개</span><span class="stat-pill" style="background:#6B7280">2030 주린이 및 테크 리뷰 구독자 1개</span><span class="stat-pill" style="background:#6B7280">더 나은 워라밸을 꿈꾸는 2030 직장인 1개</span><span class="stat-pill" style="background:#6B7280">연애 중이거나 관심 있는 1030 남녀 1개</span><span class="stat-pill" style="background:#6B7280">프로야구를 즐기는 1030 남녀 1개</span><span class="stat-pill" style="background:#6B7280">1030 스포츠 팬덤 1개</span><span class="stat-pill" style="background:#6B7280">K리그 팬, 디즈니·픽사 캐릭터 팬 1개</span><span class="stat-pill" style="background:#6B7280">주식/코인 투자 경험이 있는 2030 '주린이' 1개</span><span class="stat-pill" style="background:#6B7280">주식/코인 투자 경험이 있는 1030 남녀 1개</span><span class="stat-pill" style="background:#6B7280">재테크에 관심 많은 2030 2개</span><span class="stat-pill" style="background:#6B7280">2030 얼리어답터 및 IT테크 유저 1개</span><span class="stat-pill" style="background:#6B7280">기존 아이폰 사용자 1개</span><span class="stat-pill" style="background:#6B7280">최신 IT 기기에 관심 많은 2030 테크 얼리어답터 1개</span><span class="stat-pill" style="background:#6B7280">스마트폰 교체를 고민하는 1030 1개</span><span class="stat-pill" style="background:#6B7280">2030 단기 주식 투자자 1개</span><span class="stat-pill" style="background:#6B7280">월드컵을 즐기는 Z세대 및 밀레니얼 1개</span><span class="stat-pill" style="background:#6B7280">축구 경기에 과몰입하는 1030 남녀 1개</span><span class="stat-pill" style="background:#6B7280">넷플릭스 주말 정주행족 1개</span><span class="stat-pill" style="background:#6B7280">2030 OTT 헤비 유저 1개</span><span class="stat-pill" style="background:#6B7280">1030 OTT 구독 경험자 1개</span><span class="stat-pill" style="background:#6B7280">디즈니플러스 구독자 및 잠재 구독자 1개</span><span class="stat-pill" style="background:#6B7280">2030대 웹툰·드라마 고관여층 1개</span><span class="stat-pill" style="background:#6B7280">웹툰/드라마/영화를 즐기는 1030 콘텐츠 소비자 1개</span><span class="stat-pill" style="background:#6B7280">특정 웹툰에 과몰입한 경험이 있는 1020 Z세대 팬 1개</span><span class="stat-pill" style="background:#6B7280">갓생을 꿈꾸는 20대 여성, K팝 팬덤 1개</span><span class="stat-pill" style="background:#6B7280">'갓생'을 시도해봤거나 계획 중인 1020 학생 및 사회초년생 1개</span><span class="stat-pill" style="background:#6B7280">2030 갓생러 및 러닝 크루 멤버 1개</span><span class="stat-pill" style="background:#6B7280">러닝 크루에 관심 있거나 활동 중인 2030 1개</span><span class="stat-pill" style="background:#6B7280">반복되는 일상에 지친 20대 후반~30대 초반 직장인 1개</span><span class="stat-pill" style="background:#6B7280">주말 약속 장소를 찾는 2030 트렌드세터 1개</span><span class="stat-pill" style="background:#6B7280">다양한 취향을 가진 1030 남녀 1개</span><span class="stat-pill" style="background:#6B7280">2030 직장인, 커리어 트렌드 팔로워 1개</span><span class="stat-pill" style="background:#6B7280">번아웃을 경험하는 2030 직장인 1개</span><span class="stat-pill" style="background:#6B7280">2030 직장인 투자자 1개</span><span class="stat-pill" style="background:#6B7280">현 직장에 불만/피로감을 느끼는 2030 직장인 1개</span><span class="stat-pill" style="background:#6B7280">워라밸을 중시하는 2030 직장인 및 취준생 1개</span><span class="stat-pill" style="background:#6B7280">번아웃을 느끼는 1030 학생 및 사회초년생 1개</span><span class="stat-pill" style="background:#6B7280">테크 소식에 밝은 2030 직장인 및 대학생 1개</span><span class="stat-pill" style="background:#6B7280">과제·업무에 AI 챗봇을 활용하는 대학생 및 사회초년생 1개</span><span class="stat-pill" style="background:#6B7280">2030 프로야구 팬 1개</span><span class="stat-pill" style="background:#6B7280">웹툰/드라마 속 주인공에 과몰입하는 1030 유저 1개</span><span class="stat-pill" style="background:#6B7280">2030 스포츠 팬, 주말 액티비티를 찾는 MZ세대 1개</span></div>
+        <div class="collapsible" id="targetPills"><span class="stat-pill" style="background:#6B7280">공통 2개</span><span class="stat-pill" style="background:#6B7280">KBO 프로야구 팬, 스포츠 예측러 1개</span><span class="stat-pill" style="background:#6B7280">KBO 리그 코어 팬층 1개</span><span class="stat-pill" style="background:#6B7280">2030 축구 팬 1개</span><span class="stat-pill" style="background:#6B7280">축구 고관여 팬 1개</span><span class="stat-pill" style="background:#6B7280">K리그 직관/집관러, 각 구단 팬덤 1개</span><span class="stat-pill" style="background:#6B7280">2030 주식 투자자, 반도체 산업 관심층 1개</span><span class="stat-pill" style="background:#6B7280">2030 주식 투자자 및 직장인 1개</span><span class="stat-pill" style="background:#6B7280">2030 주린이 및 예비 투자자 1개</span><span class="stat-pill" style="background:#6B7280">재테크에 관심 있는 2030 직장인 1개</span><span class="stat-pill" style="background:#6B7280">2030 코인 투자자 및 예비 투자자 1개</span><span class="stat-pill" style="background:#6B7280">코인 투자로 스트레스 받아본 1020 1개</span><span class="stat-pill" style="background:#6B7280">Z세대 스마트폰 헤비 유저 1개</span><span class="stat-pill" style="background:#6B7280">건강 및 웨어러블 기기에 관심 있는 2030 1개</span><span class="stat-pill" style="background:#6B7280">2030 주식/바이오 투자자 1개</span><span class="stat-pill" style="background:#6B7280">월드컵 시즌만 되면 축구 보는 2030 남녀 1개</span><span class="stat-pill" style="background:#6B7280">Z세대 드라마 과몰입러 1개</span><span class="stat-pill" style="background:#6B7280">사회 이슈에 관심 많은 2030 1개</span><span class="stat-pill" style="background:#6B7280">SNS 트렌드에 민감하고 자기계발에 관심 많은 2030 1개</span><span class="stat-pill" style="background:#6B7280">팝업스토어에 가봤거나 갈 예정인 1030 소비자 1개</span><span class="stat-pill" style="background:#6B7280">팀 단위 업무 경험이 있는 2030 직장인 1개</span><span class="stat-pill" style="background:#6B7280">2030 사회초년생 및 직장인 1개</span><span class="stat-pill" style="background:#6B7280">주 4일제 도입을 현실적으로 고민하는 2030 직장인 1개</span><span class="stat-pill" style="background:#6B7280">사회 이슈와 기술 윤리에 관심 있는 2030 1개</span><span class="stat-pill" style="background:#6B7280">2030 직장인 및 취준생 1개</span><span class="stat-pill" style="background:#6B7280">갓생을 꿈꾸는 1020 학생 및 주니어 직장인 1개</span><span class="stat-pill" style="background:#6B7280">2030 주린이 및 테크 리뷰 구독자 1개</span><span class="stat-pill" style="background:#6B7280">더 나은 워라밸을 꿈꾸는 2030 직장인 1개</span><span class="stat-pill" style="background:#6B7280">연애 중이거나 관심 있는 1030 남녀 1개</span><span class="stat-pill" style="background:#6B7280">프로야구를 즐기는 1030 남녀 1개</span><span class="stat-pill" style="background:#6B7280">1030 스포츠 팬덤 1개</span><span class="stat-pill" style="background:#6B7280">K리그 팬, 디즈니·픽사 캐릭터 팬 1개</span><span class="stat-pill" style="background:#6B7280">주식/코인 투자 경험이 있는 2030 '주린이' 1개</span><span class="stat-pill" style="background:#6B7280">주식/코인 투자 경험이 있는 1030 남녀 1개</span><span class="stat-pill" style="background:#6B7280">재테크에 관심 많은 2030 2개</span><span class="stat-pill" style="background:#6B7280">2030 얼리어답터 및 IT테크 유저 1개</span><span class="stat-pill" style="background:#6B7280">기존 아이폰 사용자 1개</span><span class="stat-pill" style="background:#6B7280">최신 IT 기기에 관심 많은 2030 테크 얼리어답터 1개</span><span class="stat-pill" style="background:#6B7280">스마트폰 교체를 고민하는 1030 1개</span><span class="stat-pill" style="background:#6B7280">2030 단기 주식 투자자 1개</span><span class="stat-pill" style="background:#6B7280">월드컵을 즐기는 Z세대 및 밀레니얼 1개</span><span class="stat-pill" style="background:#6B7280">축구 경기에 과몰입하는 1030 남녀 1개</span><span class="stat-pill" style="background:#6B7280">넷플릭스 주말 정주행족 1개</span><span class="stat-pill" style="background:#6B7280">2030 OTT 헤비 유저 1개</span><span class="stat-pill" style="background:#6B7280">1030 OTT 구독 경험자 1개</span><span class="stat-pill" style="background:#6B7280">디즈니플러스 구독자 및 잠재 구독자 1개</span><span class="stat-pill" style="background:#6B7280">2030대 웹툰·드라마 고관여층 1개</span><span class="stat-pill" style="background:#6B7280">웹툰/드라마/영화를 즐기는 1030 콘텐츠 소비자 1개</span><span class="stat-pill" style="background:#6B7280">특정 웹툰에 과몰입한 경험이 있는 1020 Z세대 팬 1개</span><span class="stat-pill" style="background:#6B7280">갓생을 꿈꾸는 20대 여성, K팝 팬덤 1개</span><span class="stat-pill" style="background:#6B7280">'갓생'을 시도해봤거나 계획 중인 1020 학생 및 사회초년생 1개</span><span class="stat-pill" style="background:#6B7280">2030 갓생러 및 러닝 크루 멤버 1개</span><span class="stat-pill" style="background:#6B7280">러닝 크루에 관심 있거나 활동 중인 2030 1개</span><span class="stat-pill" style="background:#6B7280">반복되는 일상에 지친 20대 후반~30대 초반 직장인 1개</span><span class="stat-pill" style="background:#6B7280">주말 약속 장소를 찾는 2030 트렌드세터 1개</span><span class="stat-pill" style="background:#6B7280">다양한 취향을 가진 1030 남녀 1개</span><span class="stat-pill" style="background:#6B7280">2030 직장인, 커리어 트렌드 팔로워 1개</span><span class="stat-pill" style="background:#6B7280">번아웃을 경험하는 2030 직장인 1개</span><span class="stat-pill" style="background:#6B7280">2030 직장인 투자자 1개</span><span class="stat-pill" style="background:#6B7280">현 직장에 불만/피로감을 느끼는 2030 직장인 1개</span><span class="stat-pill" style="background:#6B7280">워라밸을 중시하는 2030 직장인 및 취준생 1개</span><span class="stat-pill" style="background:#6B7280">번아웃을 느끼는 1030 학생 및 사회초년생 1개</span><span class="stat-pill" style="background:#6B7280">테크 소식에 밝은 2030 직장인 및 대학생 1개</span><span class="stat-pill" style="background:#6B7280">과제·업무에 AI 챗봇을 활용하는 대학생 및 사회초년생 1개</span><span class="stat-pill" style="background:#6B7280">2030 프로야구 팬 1개</span><span class="stat-pill" style="background:#6B7280">웹툰/드라마 속 주인공에 과몰입하는 1030 유저 1개</span><span class="stat-pill" style="background:#6B7280">2030 스포츠 팬, 주말 액티비티를 찾는 MZ세대 1개</span></div>
+        <button class="more-btn" id="targetMoreBtn" onclick="toggleTargets()" style="display:none">더보기 ▾</button>
       </div>
     </div>
 
@@ -276,7 +283,8 @@
         <span class="search-count" id="searchCount"></span>
       </div>
       <div class="filter-row"><button class="filter-btn active" onclick="filterCards('all', this)">전체</button><button class="filter-btn" style="--fc:#4F46E5" onclick="filterCards('prediction', this)">예측</button><button class="filter-btn" style="--fc:#059669" onclick="filterCards('vote', this)">투표</button><button class="filter-btn" style="--fc:#DB2777" onclick="filterCards('snack', this)">스낵</button><button class="filter-btn" style="--fc:#D97706" onclick="filterCards('ranking', this)">랭킹 예측</button><button class="filter-btn" style="--fc:#DC2626" onclick="filterCards('numeric', this)">수치 예측</button><button class="filter-btn" style="--fc:#7C3AED" onclick="filterCards('timing', this)">타이밍 예측</button><button class="filter-btn" style="--fc:#7C3AED" onclick="filterCreative(this)">✨ AI 자유 제안</button><button class="filter-btn lock-filter-btn" style="--fc:#F59E0B" onclick="filterLocked(this)">🔒 잠금됨</button></div>
-      <div class="cards-grid" id="cardsGrid">
+      <div class="cards-area">
+        <div class="cards-grid" id="cardsGrid">
     <div class="market-card" data-type="numeric" data-score="5" data-sourcetype="issue" data-search=" 2026 북중미 월드컵에서 손흥민 선수의 총 득점은 몇 골일까요? [축구] 손흥민, 야후스포츠 선정 '북중미 월드컵서 주목할 26인' - 뉴시스 " data-idx="0" id="mcard-0">
       <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid #DC2626">
@@ -1588,6 +1596,8 @@
         <p class="insight-blurb">최근 아이돌 시축, 유니폼 꾸미기 열풍으로 K리그 관중이 폭발적으로 늘고 있어요. 반면 '국민 스포츠' KBO도 여전히 굳건한 팬심을 자랑하죠. 만약 당신이 주말에 딱 한 경기만 직관할 수 있다면, 어디로 달려가실 건가요?</p>
       </div>
     </div></div>
+        <div class="no-results" id="noResults" style="display:none">🔍 조회 결과가 없습니다.</div>
+      </div>
     </div>
   </div>
 </div>
@@ -1764,12 +1774,31 @@ function showPage(name, btn) {
 }
 
 // ── 필터 / 정렬 ──────────────────────────────────────
+// 보이는 카드가 0이면 '조회 결과 없음' 표시 (영역 높이는 .cards-area가 고정)
+function updateNoResults() {
+  var visible = 0;
+  document.querySelectorAll('.market-card').forEach(function(c) { if (!c.classList.contains('hidden')) visible++; });
+  var nr = document.getElementById('noResults');
+  if (nr) nr.style.display = visible === 0 ? 'block' : 'none';
+}
+
+// 타겟 분포 더보기/접기
+function toggleTargets() {
+  var el = document.getElementById('targetPills');
+  var btn = document.getElementById('targetMoreBtn');
+  if (!el) return;
+  var expanded = el.classList.toggle('expanded');
+  if (btn) btn.textContent = expanded ? '접기 ▴' : '더보기 ▾';
+}
+
 function filterCards(type, btn) {
   document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
   btn.classList.add('active');
+  var sb = document.getElementById('cardSearch'); if (sb) sb.value = '';
   document.querySelectorAll('.market-card').forEach(function(card) {
     card.classList.toggle('hidden', type !== 'all' && card.dataset.type !== type);
   });
+  updateNoResults();
 }
 function filterCreative(btn) {
   document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -1777,6 +1806,7 @@ function filterCreative(btn) {
   document.querySelectorAll('.market-card').forEach(function(card) {
     card.classList.toggle('hidden', card.dataset.sourcetype !== 'creative');
   });
+  updateNoResults();
 }
 function filterLocked(btn) {
   document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -1784,6 +1814,7 @@ function filterLocked(btn) {
   document.querySelectorAll('.market-card').forEach(function(card) {
     card.classList.toggle('hidden', !card.classList.contains('locked'));
   });
+  updateNoResults();
 }
 function sortCards(by) {
   var grid = document.getElementById('cardsGrid');
@@ -1815,6 +1846,7 @@ function searchCards(q) {
     var first = document.querySelector('.filter-btn');
     if (first) first.classList.add('active');
   }
+  updateNoResults();
 }
 
 // ── 잠금 시스템 ──────────────────────────────────────
@@ -2488,6 +2520,13 @@ function init() {
 
   // 자동 키워드 리스트 렌더
   try { renderAutoKeywords(); } catch(e) { console.warn('auto keyword render error:', e); }
+
+  // 타겟 분포가 고정 높이를 넘으면 '더보기' 버튼 노출
+  try {
+    var tp = document.getElementById('targetPills');
+    var tbtn = document.getElementById('targetMoreBtn');
+    if (tp && tbtn && tp.scrollHeight > tp.clientHeight + 4) tbtn.style.display = 'inline-block';
+  } catch(e) { console.warn('target more btn error:', e); }
 
   // 히스토리 첫 날짜 자동 로드
   try {

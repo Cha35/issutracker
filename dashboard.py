@@ -302,6 +302,12 @@ def generate_html(issues, markets, history):
   .search-count {{ font-size: 12px; color: #94A3B8; white-space: nowrap; }}
   select {{ background: white; border: 1px solid #E2E8F0; color: #374151; padding: 6px 12px; border-radius: 8px; font-size: 13px; cursor: pointer; }}
   .cards-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }}
+  .cards-area {{ min-height: 58vh; }}
+  .no-results {{ text-align: center; color: #94A3B8; font-size: 14px; padding: 80px 20px; }}
+  .collapsible {{ max-height: 84px; overflow: hidden; transition: max-height 0.25s ease; }}
+  .collapsible.expanded {{ max-height: 2000px; }}
+  .more-btn {{ margin-top: 8px; background: none; border: none; color: #4F46E5; font-size: 12px; font-weight: 600; cursor: pointer; padding: 2px 0; }}
+  .more-btn:hover {{ text-decoration: underline; }}
   .market-card {{ background: #FAFAFA; border-radius: 12px; border: 1px solid #E2E8F0; overflow: hidden; transition: transform 0.15s, box-shadow 0.15s; position: relative; }}
   .market-card:hover {{ transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.08); }}
   .market-card.hidden {{ display: none; }}
@@ -486,7 +492,8 @@ def generate_html(issues, markets, history):
         <h2>마켓 유형 분포</h2>
         <div style="margin-bottom:16px">{type_pills}</div>
         <h2 style="margin-top:16px">타겟 분포</h2>
-        <div>{target_pills}</div>
+        <div class="collapsible" id="targetPills">{target_pills}</div>
+        <button class="more-btn" id="targetMoreBtn" onclick="toggleTargets()" style="display:none">더보기 ▾</button>
       </div>
     </div>
 
@@ -502,7 +509,10 @@ def generate_html(issues, markets, history):
         <span class="search-count" id="searchCount"></span>
       </div>
       <div class="filter-row">{filter_buttons}</div>
-      <div class="cards-grid" id="cardsGrid">{market_cards}</div>
+      <div class="cards-area">
+        <div class="cards-grid" id="cardsGrid">{market_cards}</div>
+        <div class="no-results" id="noResults" style="display:none">🔍 조회 결과가 없습니다.</div>
+      </div>
     </div>
   </div>
 </div>
@@ -679,12 +689,31 @@ function showPage(name, btn) {{
 }}
 
 // ── 필터 / 정렬 ──────────────────────────────────────
+// 보이는 카드가 0이면 '조회 결과 없음' 표시 (영역 높이는 .cards-area가 고정)
+function updateNoResults() {{
+  var visible = 0;
+  document.querySelectorAll('.market-card').forEach(function(c) {{ if (!c.classList.contains('hidden')) visible++; }});
+  var nr = document.getElementById('noResults');
+  if (nr) nr.style.display = visible === 0 ? 'block' : 'none';
+}}
+
+// 타겟 분포 더보기/접기
+function toggleTargets() {{
+  var el = document.getElementById('targetPills');
+  var btn = document.getElementById('targetMoreBtn');
+  if (!el) return;
+  var expanded = el.classList.toggle('expanded');
+  if (btn) btn.textContent = expanded ? '접기 ▴' : '더보기 ▾';
+}}
+
 function filterCards(type, btn) {{
   document.querySelectorAll('.filter-btn').forEach(function(b) {{ b.classList.remove('active'); }});
   btn.classList.add('active');
+  var sb = document.getElementById('cardSearch'); if (sb) sb.value = '';
   document.querySelectorAll('.market-card').forEach(function(card) {{
     card.classList.toggle('hidden', type !== 'all' && card.dataset.type !== type);
   }});
+  updateNoResults();
 }}
 function filterCreative(btn) {{
   document.querySelectorAll('.filter-btn').forEach(function(b) {{ b.classList.remove('active'); }});
@@ -692,6 +721,7 @@ function filterCreative(btn) {{
   document.querySelectorAll('.market-card').forEach(function(card) {{
     card.classList.toggle('hidden', card.dataset.sourcetype !== 'creative');
   }});
+  updateNoResults();
 }}
 function filterLocked(btn) {{
   document.querySelectorAll('.filter-btn').forEach(function(b) {{ b.classList.remove('active'); }});
@@ -699,6 +729,7 @@ function filterLocked(btn) {{
   document.querySelectorAll('.market-card').forEach(function(card) {{
     card.classList.toggle('hidden', !card.classList.contains('locked'));
   }});
+  updateNoResults();
 }}
 function sortCards(by) {{
   var grid = document.getElementById('cardsGrid');
@@ -730,6 +761,7 @@ function searchCards(q) {{
     var first = document.querySelector('.filter-btn');
     if (first) first.classList.add('active');
   }}
+  updateNoResults();
 }}
 
 // ── 잠금 시스템 ──────────────────────────────────────
@@ -1403,6 +1435,13 @@ function init() {{
 
   // 자동 키워드 리스트 렌더
   try {{ renderAutoKeywords(); }} catch(e) {{ console.warn('auto keyword render error:', e); }}
+
+  // 타겟 분포가 고정 높이를 넘으면 '더보기' 버튼 노출
+  try {{
+    var tp = document.getElementById('targetPills');
+    var tbtn = document.getElementById('targetMoreBtn');
+    if (tp && tbtn && tp.scrollHeight > tp.clientHeight + 4) tbtn.style.display = 'inline-block';
+  }} catch(e) {{ console.warn('target more btn error:', e); }}
 
   // 히스토리 첫 날짜 자동 로드
   try {{
