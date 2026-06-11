@@ -2,3 +2,18 @@
 venv/
 __pycache__/
 *.pyc
+
+# 런타임 데이터 (대시보드 index.html에 임베드되므로 배포 불필요)
+collected_issues.json
+collected_keywords.json
+market_drafts.json
+locked_markets.json
+rejected_markets.json
+published_markets.json
+history/
+
+# 테스트/스크래치 스크립트
+test_*.py
+check*.py
+*_result.json
+test_script.js

@@ -7,6 +7,7 @@ from config import CATEGORY_LABELS
 MARKET_TYPE_KO = {
     "prediction": "예측",
     "vote": "투표",
+    "snack": "스낵",
     "ranking": "랭킹 예측",
     "numeric": "수치 예측",
     "timing": "타이밍 예측",
@@ -15,6 +16,7 @@ MARKET_TYPE_KO = {
 MARKET_TYPE_COLOR = {
     "prediction": "#4F46E5",
     "vote": "#059669",
+    "snack": "#DB2777",
     "ranking": "#D97706",
     "numeric": "#DC2626",
     "timing": "#7C3AED",
@@ -88,11 +90,21 @@ def render_market_card(m, idx):
     q_escaped = m.get("question", "").replace('"', '&quot;').replace("'", "&#39;")
 
     question = m.get('question', '').replace('<', '&lt;').replace('>', '&gt;')
-    rationale = m.get('rationale', '').replace('<', '&lt;').replace('>', '&gt;')
+    # 카드 하단 블러브: 유저 노출용 content_insight 우선, 없으면 기획의도(rationale)로 폴백
+    insight_src = m.get('content_insight') or m.get('rationale', '')
+    rationale = insight_src.replace('<', '&lt;').replace('>', '&gt;')
+    has_insight = bool((m.get('content_insight') or '').strip())
+    blurb_class = "insight-blurb" if has_insight else "rationale"
     title_attr = issue_title.replace('"', '&quot;')
 
+    # 검색용 텍스트 (키워드 + 질문 + 원본제목 + 태그)
+    search_text = " ".join([
+        m.get("keyword", ""), m.get("question", ""), issue_title,
+        " ".join(m.get("trend_tags", [])),
+    ]).lower().replace('"', '&quot;')
+
     return f"""
-    <div class="market-card" data-type="{mtype}" data-score="{score}" data-sourcetype="{source_type}" data-idx="{idx}" id="mcard-{idx}">
+    <div class="market-card" data-type="{mtype}" data-score="{score}" data-sourcetype="{source_type}" data-search="{search_text}" data-idx="{idx}" id="mcard-{idx}">
       <div class="locked-ribbon">🔒 잠금</div>
       <div class="card-header" style="border-left: 4px solid {color}">
         <span class="type-badge" style="background:{color}">{type_ko}</span>
@@ -101,14 +113,14 @@ def render_market_card(m, idx):
         <button class="lock-btn" onclick="toggleLock({idx}, this)" title="잠금 시 동기화해도 유지됨">🔓</button>
         <button class="reject-btn" onclick="openRejectModal({idx})" title="이 마켓 제외 (사유 입력)">✕</button>
       </div>
-      <div class="card-body">
+      <div class="card-body" onclick="openDetailModal({idx})" title="클릭하면 상세 검수 / 발행">
         <p class="question">{question}</p>
         <div class="options">{options_html}</div>
         <div class="source-row">
           <span class="source-title" title="{title_attr}">{short_title}</span>
           {link_html}
         </div>
-        <p class="rationale">{rationale}</p>
+        <p class="{blurb_class}">{rationale}</p>
       </div>
     </div>"""
 
@@ -173,11 +185,13 @@ def generate_html(issues, markets, history):
             ],
         }
 
-    # 현재 마켓 데이터 (잠금 저장용)
+    # 현재 마켓 데이터 (잠금 저장 + 상세 검수 모달용)
     markets_for_js = [
         {
             "issue_title": m.get("issue_title", ""),
             "market_type": m.get("market_type", ""),
+            "content_type": m.get("content_type", ""),
+            "keyword": m.get("keyword", m.get("issue_title", "")),
             "question": m.get("question", ""),
             "options": m.get("options", []),
             "category": m.get("category", ""),
@@ -186,12 +200,50 @@ def generate_html(issues, markets, history):
             "marketability_score": m.get("marketability_score", 0),
             "source_link": m.get("source_link", ""),
             "source_type": m.get("source_type", "issue"),
+            "trend_tags": m.get("trend_tags", []),
+            "content_insight": m.get("content_insight", ""),
+            "audience_insight_guide": m.get("audience_insight_guide", ""),
+            "recommended_segments": m.get("recommended_segments", []),
+            "resolution_criteria": m.get("resolution_criteria", ""),
+            "push_notification_headline": m.get("push_notification_headline", ""),
+            "scores": m.get("scores", {}),
         }
         for m in markets
     ]
 
+    # 실시간 자동 키워드 (수집 내역 탭용)
+    auto_keywords = []
+    if os.path.exists("collected_keywords.json"):
+        try:
+            with open("collected_keywords.json", encoding="utf-8") as f:
+                kw_items = json.load(f)
+            auto_keywords = [{"keyword": it.get("keyword", ""), "domain": it.get("domain", "")} for it in kw_items]
+        except Exception:
+            auto_keywords = []
+
+    # 거절(제외) 이력 (제외 이력 탭용 — 빌드 시점 스냅샷, 로컬에선 런타임 fetch로 갱신)
+    rejects_snapshot = []
+    if os.path.exists("rejected_markets.json"):
+        try:
+            with open("rejected_markets.json", encoding="utf-8") as f:
+                rejects_snapshot = json.load(f)
+        except Exception:
+            rejects_snapshot = []
+
+    # 발행(진행중) 마켓 질문 집합 — 상세 모달 참여자 섹션 상태 판정용
+    published_questions = []
+    if os.path.exists("published_markets.json"):
+        try:
+            with open("published_markets.json", encoding="utf-8") as f:
+                published_questions = [p.get("question", "") for p in json.load(f) if p.get("question")]
+        except Exception:
+            published_questions = []
+
     history_data_js = json.dumps(history_for_js, ensure_ascii=False)
     markets_data_js = json.dumps(markets_for_js, ensure_ascii=False)
+    auto_keywords_js = json.dumps(auto_keywords, ensure_ascii=False)
+    rejects_data_js = json.dumps(rejects_snapshot, ensure_ascii=False)
+    published_q_js = json.dumps(published_questions, ensure_ascii=False)
     type_color_js = json.dumps(MARKET_TYPE_COLOR)
     type_ko_js = json.dumps(MARKET_TYPE_KO, ensure_ascii=False)
     history_dates = list(history_for_js.keys())
@@ -245,6 +297,9 @@ def generate_html(issues, markets, history):
   .filter-btn.active {{ background: var(--fc, #4F46E5); border-color: var(--fc, #4F46E5); color: white; }}
   .sort-row {{ display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }}
   .sort-row label {{ font-size: 13px; color: #64748B; }}
+  .search-box {{ margin-left: auto; width: 260px; max-width: 50%; border: 1px solid #E2E8F0; border-radius: 8px; padding: 7px 12px; font-size: 13px; color: #1E293B; outline: none; transition: all 0.15s; }}
+  .search-box:focus {{ border-color: #4F46E5; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); width: 320px; }}
+  .search-count {{ font-size: 12px; color: #94A3B8; white-space: nowrap; }}
   select {{ background: white; border: 1px solid #E2E8F0; color: #374151; padding: 6px 12px; border-radius: 8px; font-size: 13px; cursor: pointer; }}
   .cards-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }}
   .market-card {{ background: #FAFAFA; border-radius: 12px; border: 1px solid #E2E8F0; overflow: hidden; transition: transform 0.15s, box-shadow 0.15s; position: relative; }}
@@ -283,7 +338,78 @@ def generate_html(issues, markets, history):
   .btn-cancel:hover {{ background: #F8FAFC; }}
   .btn-reject {{ padding: 8px 18px; border: none; border-radius: 8px; background: #EF4444; color: white; cursor: pointer; font-size: 13px; font-weight: 600; }}
   .btn-reject:hover {{ background: #DC2626; }}
-  .card-body {{ padding: 14px 16px; }}
+  /* 상세 검수 모달 */
+  .modal-lg {{ width: 600px; max-width: 94vw; max-height: 90vh; overflow-y: auto; }}
+  .modal-lg .field {{ margin-bottom: 16px; }}
+  .modal-lg .field label {{ font-size: 12px; font-weight: 700; color: #475569; display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.03em; }}
+  .modal-lg input[type=text], .modal-lg textarea {{ width: 100%; border: 1px solid #E2E8F0; border-radius: 8px; padding: 9px 12px; font-size: 13px; color: #1E293B; font-family: inherit; outline: none; box-sizing: border-box; }}
+  .modal-lg input[type=text]:focus, .modal-lg textarea:focus {{ border-color: #4F46E5; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }}
+  .modal-lg textarea {{ resize: vertical; min-height: 60px; line-height: 1.5; }}
+  .detail-meta {{ display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }}
+  .insight-box {{ background: #F5F3FF; border: 1px solid #DDD6FE; border-radius: 8px; }}
+  .insight-box:focus {{ background: white; }}
+  .field-hint {{ font-size: 11px; color: #94A3B8; margin-top: 4px; font-weight: 400; text-transform: none; letter-spacing: 0; }}
+  .btn-publish {{ padding: 9px 22px; border: none; border-radius: 8px; background: #4F46E5; color: white; cursor: pointer; font-size: 14px; font-weight: 700; }}
+  .btn-publish:hover {{ background: #4338CA; }}
+  .btn-publish:disabled {{ background: #CBD5E1; cursor: not-allowed; }}
+  /* 참여자 프로파일링 섹션 */
+  .participant-section {{ margin-top: 18px; padding-top: 16px; border-top: 2px dashed #E2E8F0; }}
+  .ps-title {{ font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }}
+  .ps-status {{ font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 10px; }}
+  .ps-status.draft {{ background: #FEF3C7; color: #B45309; }}
+  .ps-status.live {{ background: #DCFCE7; color: #16A34A; }}
+  .ps-recommend {{ margin-bottom: 12px; }}
+  .ps-rec-label {{ font-size: 12px; font-weight: 700; color: #4338CA; margin-bottom: 8px; }}
+  .ps-seg {{ display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: #EEF2FF; border: 1px solid #C7D2FE; border-radius: 8px; margin-bottom: 6px; }}
+  .ps-seg-rank {{ font-size: 10px; font-weight: 700; color: white; background: #4F46E5; padding: 2px 7px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; }}
+  .ps-seg-axis {{ font-size: 13px; font-weight: 700; color: #312E81; white-space: nowrap; flex-shrink: 0; }}
+  .ps-seg-reason {{ font-size: 11px; color: #64748B; line-height: 1.4; }}
+  .ps-rec-star {{ font-size: 10px; font-weight: 700; color: #4F46E5; background: #EEF2FF; padding: 1px 6px; border-radius: 8px; }}
+  .ps-guide {{ font-size: 12px; color: #475569; background: #F5F3FF; border-left: 3px solid #C7D2FE; padding: 9px 12px; border-radius: 0 6px 6px 0; line-height: 1.55; }}
+  .ps-stats {{ margin-top: 12px; }}
+  .ps-mock-note {{ font-size: 11px; color: #94A3B8; margin-bottom: 10px; line-height: 1.5; }}
+  .ps-block {{ margin-bottom: 12px; }}
+  .ps-block-label {{ font-size: 11px; font-weight: 700; color: #64748B; margin-bottom: 6px; }}
+  .ps-bar-row {{ display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }}
+  .ps-bar-name {{ width: 66px; font-size: 11px; color: #64748B; text-align: right; flex-shrink: 0; }}
+  .ps-bar-track {{ flex: 1; background: #F1F5F9; border-radius: 4px; overflow: hidden; }}
+  .ps-bar-fill {{ height: 18px; border-radius: 4px; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; font-size: 10px; font-weight: 700; color: white; min-width: 22px; transition: width 0.3s; }}
+  .ps-insight {{ margin-top: 10px; font-size: 13px; color: #334155; line-height: 1.6; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 8px; padding: 12px; }}
+  /* 수집 내역 - 수동 발행 / 자동 키워드 */
+  .manual-row {{ display: flex; gap: 10px; align-items: center; }}
+  .manual-row input {{ flex: 1; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 14px; font-size: 14px; outline: none; }}
+  .manual-row input:focus {{ border-color: #4F46E5; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }}
+  .gen-btn {{ padding: 10px 18px; background: #4F46E5; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }}
+  .gen-btn:hover {{ background: #4338CA; }}
+  .gen-btn:disabled {{ background: #CBD5E1; cursor: not-allowed; }}
+  .kw-row {{ display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid #F1F5F9; }}
+  .kw-row:last-child {{ border-bottom: none; }}
+  .kw-domain {{ background: #EEF2FF; color: #4F46E5; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; white-space: nowrap; }}
+  .kw-name {{ flex: 1; font-size: 13px; color: #374151; }}
+  .kw-gen-btn {{ padding: 4px 12px; background: white; color: #4F46E5; border: 1px solid #C7D2FE; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }}
+  .kw-gen-btn:hover {{ background: #4F46E5; color: white; }}
+  .kw-gen-btn:disabled {{ background: #F1F5F9; color: #CBD5E1; border-color: #E2E8F0; cursor: not-allowed; }}
+  .tag-chip {{ display: inline-block; background: #EEF2FF; color: #4F46E5; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }}
+  /* 제외 이력 탭 */
+  .reject-counts {{ display: flex; flex-wrap: wrap; gap: 8px; }}
+  .reject-count-pill {{ display: inline-flex; align-items: center; gap: 6px; background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }}
+  .reject-count-pill b {{ font-size: 13px; }}
+  .analyze-result {{ margin-top: 16px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 18px; }}
+  .analyze-result h4 {{ font-size: 13px; font-weight: 700; color: #334155; margin: 0 0 8px; }}
+  .analyze-result .diag {{ font-size: 13px; color: #475569; line-height: 1.6; margin-bottom: 14px; }}
+  .analyze-result ul {{ margin: 0 0 14px; padding-left: 18px; }}
+  .analyze-result li {{ font-size: 13px; color: #475569; line-height: 1.6; margin-bottom: 4px; }}
+  .improve-box {{ background: #1E293B; color: #E2E8F0; border-radius: 8px; padding: 14px; font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.6; white-space: pre-wrap; position: relative; }}
+  .copy-btn {{ position: absolute; top: 8px; right: 8px; background: #475569; color: white; border: none; border-radius: 6px; padding: 3px 10px; font-size: 11px; cursor: pointer; }}
+  .copy-btn:hover {{ background: #64748B; }}
+  .rj-row {{ padding: 11px 0; border-bottom: 1px solid #F1F5F9; }}
+  .rj-row:last-child {{ border-bottom: none; }}
+  .rj-q {{ font-size: 13px; font-weight: 600; color: #1E293B; margin-bottom: 5px; }}
+  .rj-reasons {{ display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }}
+  .rj-reason {{ background: #FEE2E2; color: #B91C1C; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }}
+  .rj-memo {{ font-size: 11px; color: #94A3B8; font-style: italic; }}
+  .rj-date {{ font-size: 11px; color: #CBD5E1; margin-left: auto; }}
+  .card-body {{ padding: 14px 16px; cursor: pointer; }}
   .question {{ font-size: 14px; font-weight: 600; color: #1E293B; margin-bottom: 10px; line-height: 1.5; }}
   .options {{ display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }}
   .option-chip {{ background: white; border: 1px solid #E2E8F0; padding: 3px 10px; border-radius: 6px; font-size: 12px; color: #374151; }}
@@ -294,6 +420,7 @@ def generate_html(issues, markets, history):
   .source-link-none {{ font-size: 11px; color: #CBD5E1; white-space: nowrap; }}
   .creative-badge {{ font-size: 11px; color: #7C3AED; white-space: nowrap; font-weight: 600; background: #F5F3FF; padding: 1px 6px; border-radius: 4px; }}
   .rationale {{ font-size: 11px; color: #94A3B8; font-style: italic; line-height: 1.4; }}
+  .insight-blurb {{ font-size: 12px; color: #475569; line-height: 1.5; background: #F8FAFC; border-left: 3px solid #C7D2FE; padding: 7px 10px; border-radius: 0 6px 6px 0; }}
   .locked-ribbon {{ position: absolute; top: 8px; right: 8px; background: #F59E0B; color: white; font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; display: none; }}
   .market-card.locked .locked-ribbon {{ display: block; }}
   .issue-row {{ display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 1px solid #F8FAFC; }}
@@ -316,6 +443,7 @@ def generate_html(issues, markets, history):
   <nav>
     <button class="nav-btn active" onclick="showPage('dashboard', this)">📊 대시보드</button>
     <button class="nav-btn" onclick="showPage('history', this)">📋 수집 내역</button>
+    <button class="nav-btn" onclick="showPage('rejects', this)">🚫 제외 이력</button>
   </nav>
   <div class="header-right">
     <span class="sync-status" id="syncStatus"></span>
@@ -370,6 +498,8 @@ def generate_html(issues, markets, history):
           <option value="score">마켓화 점수 높은 순</option>
           <option value="type">마켓 유형별</option>
         </select>
+        <input type="text" class="search-box" id="cardSearch" placeholder="🔍 키워드·질문 검색..." oninput="searchCards(this.value)">
+        <span class="search-count" id="searchCount"></span>
       </div>
       <div class="filter-row">{filter_buttons}</div>
       <div class="cards-grid" id="cardsGrid">{market_cards}</div>
@@ -379,6 +509,21 @@ def generate_html(issues, markets, history):
 
 <div id="page-history" class="page">
   <div class="container">
+    <div class="section">
+      <h2>✍️ 관리자 수동 발행</h2>
+      <p style="font-size:12px;color:#94A3B8;margin:-8px 0 14px">키워드를 입력하면 AI가 <b>구글 실시간 검색</b>으로 조사한 뒤 마켓 초안을 만들어 대시보드로 보냅니다. (~30초)</p>
+      <div class="manual-row">
+        <input type="text" id="manualKeyword" placeholder="예: SK하이닉스 주가, 손흥민 월드컵, 참교육 시즌2..." onkeydown="if(event.key==='Enter')generateFromKeyword(this.value, null)">
+        <button class="gen-btn" id="manualGenBtn" onclick="generateFromKeyword(document.getElementById('manualKeyword').value, null)">🤖 AI 마켓 생성요청</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>📡 실시간 자동 키워드 <span style="font-size:12px;color:#94A3B8;font-weight:400" id="autoKwCount"></span></h2>
+      <p style="font-size:12px;color:#94A3B8;margin:-8px 0 14px">하이브리드 엔진이 자동 추출한 트렌드 키워드입니다. [즉시 마켓 생성]으로 바로 초안화할 수 있습니다.</p>
+      <div id="autoKeywordList"><p class="empty-state">키워드 없음</p></div>
+    </div>
+
     <div class="section" style="margin-bottom:16px">
       <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
         <h2 style="margin:0">📋 수집 내역</h2>
@@ -397,6 +542,25 @@ def generate_html(issues, markets, history):
         <h2 style="margin-bottom:12px">마켓 초안 <span id="marketCount" style="font-size:13px;color:#94A3B8;font-weight:400"></span></h2>
         <div id="marketList"><p class="empty-state">날짜를 선택하세요</p></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<div id="page-rejects" class="page">
+  <div class="container">
+    <div class="section">
+      <h2>🚫 제외(거절) 사유 분석 <span id="rejectTotal" style="font-size:12px;color:#EF4444;font-weight:600;margin-left:6px"></span></h2>
+      <p style="font-size:12px;color:#94A3B8;margin:-8px 0 14px">제외된 마켓과 사유를 누적 기록만 합니다. <b>자동 분석은 하지 않으며</b>, 아래 버튼을 눌렀을 때만 AI가 1회 분석해 프롬프트 개선안을 제시합니다.</p>
+      <div id="rejectCounts" class="reject-counts"></div>
+      <div style="margin-top:14px">
+        <button class="gen-btn" id="analyzeBtn" onclick="analyzeRejects()" style="background:#EF4444">🤖 거절 패턴 분석 &amp; 프롬프트 개선안 도출</button>
+        <span style="font-size:11px;color:#94A3B8;margin-left:10px">클릭 시에만 AI 호출 (~20초)</span>
+      </div>
+      <div id="analyzeResult" class="analyze-result" style="display:none"></div>
+    </div>
+    <div class="section">
+      <h2>제외 마켓 목록 <span id="rejectListCount" style="font-size:13px;color:#94A3B8;font-weight:400"></span></h2>
+      <div id="rejectList"><p class="empty-state">제외된 마켓이 없습니다</p></div>
     </div>
   </div>
 </div>
@@ -428,10 +592,63 @@ def generate_html(issues, markets, history):
   </div>
 </div>
 
+<!-- 상세 검수 모달 -->
+<div class="modal-backdrop" id="detailBackdrop" onclick="closeDetailModal(event)">
+  <div class="modal modal-lg" onclick="event.stopPropagation()">
+    <h3>📝 마켓 상세 검수</h3>
+    <div class="detail-meta" id="detailMeta"></div>
+
+    <div class="field">
+      <label>질문 (poll_question)</label>
+      <textarea id="d_question" rows="2"></textarea>
+    </div>
+    <div class="field">
+      <label>선택지 (options) <span class="field-hint">한 줄에 하나씩</span></label>
+      <textarea id="d_options" rows="4"></textarea>
+    </div>
+    <div class="field">
+      <label>트렌드 태그 (trend_tags) <span class="field-hint">쉼표로 구분 · 예: #서학개미, #퇴사각</span></label>
+      <input type="text" id="d_tags" placeholder="#태그1, #태그2, #태그3">
+    </div>
+    <div class="field">
+      <label>AI 트렌드 시사점 (content_insight)</label>
+      <textarea id="d_insight" class="insight-box" rows="3"></textarea>
+    </div>
+    <div class="field">
+      <label>정산 기준 (resolution_criteria)</label>
+      <textarea id="d_resolution" rows="2"></textarea>
+    </div>
+    <div class="field">
+      <label>푸시 카피 (push_notification_headline)</label>
+      <input type="text" id="d_push">
+    </div>
+
+    <div class="participant-section">
+      <div class="ps-title">👥 참여자 프로파일링 리포트 <span id="psStatus" class="ps-status"></span></div>
+      <div id="psRecommend" class="ps-recommend"></div>
+      <div id="psGuide" class="ps-guide"></div>
+      <div id="psStats" class="ps-stats"></div>
+      <div id="psInsightWrap" style="display:none">
+        <button class="gen-btn" id="psInsightBtn" onclick="genParticipantInsight()" style="margin-top:12px">🤖 AI 참여자 분석 리포트 생성</button>
+        <span style="font-size:11px;color:#94A3B8;margin-left:8px">클릭 시에만 AI 호출 (~15초)</span>
+        <div id="psInsight" class="ps-insight" style="display:none"></div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeDetailModal(null)">닫기</button>
+      <button class="btn-publish" id="publishBtn" onclick="publishMarket()">🚀 최종 발행/배포</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── 데이터 ──────────────────────────────────────────
 const HISTORY_DATA = {history_data_js};
 const MARKETS_DATA = {markets_data_js};
+const AUTO_KEYWORDS = {auto_keywords_js};
+const REJECTS_DATA = {rejects_data_js};
+const PUBLISHED_QUESTIONS = {published_q_js};
 const TYPE_COLORS = {type_color_js};
 const TYPE_KO = {type_ko_js};
 const IS_LOCAL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -455,6 +672,9 @@ function showPage(name, btn) {{
   if (name === 'history') {{
     var sel = document.getElementById('historyDateSelect');
     if (sel && sel.value) loadHistoryDate(sel.value);
+  }}
+  if (name === 'rejects') {{
+    loadRejects();
   }}
 }}
 
@@ -489,6 +709,27 @@ function sortCards(by) {{
     return 0;
   }});
   cards.forEach(function(c) {{ grid.appendChild(c); }});
+}}
+
+function searchCards(q) {{
+  q = (q || '').trim().toLowerCase();
+  // 검색 중에는 유형/잠금 필터 버튼 활성 해제 (독립 동작)
+  document.querySelectorAll('.filter-btn').forEach(function(b) {{ b.classList.remove('active'); }});
+  var shown = 0, total = 0;
+  document.querySelectorAll('.market-card').forEach(function(card) {{
+    total++;
+    var txt = card.dataset.search || '';
+    var hit = q === '' || txt.indexOf(q) !== -1;
+    card.classList.toggle('hidden', !hit);
+    if (hit) shown++;
+  }});
+  var cnt = document.getElementById('searchCount');
+  if (cnt) cnt.textContent = q === '' ? '' : (shown + ' / ' + total + '개');
+  // 검색어 비우면 '전체' 필터 활성 복원
+  if (q === '') {{
+    var first = document.querySelector('.filter-btn');
+    if (first) first.classList.add('active');
+  }}
 }}
 
 // ── 잠금 시스템 ──────────────────────────────────────
@@ -583,8 +824,8 @@ function doSync() {{
   btn.disabled = true;
   btn.classList.add('running');
   btn.textContent = '⏳ 동기화 중...';
-  document.getElementById('syncStatus').textContent = '수집 중... (~2분 소요)';
-  showToast('🔄 동기화 시작! 약 2분 후 자동으로 새로고침됩니다', 4000);
+  document.getElementById('syncStatus').textContent = '수집·생성 중... (~4-5분 소요)';
+  showToast('🔄 동기화 시작! 약 4-5분 후 자동으로 새로고침됩니다', 4000);
 
   fetch('/api/sync', {{ method: 'POST' }})
     .then(function(r) {{ return r.json(); }})
@@ -701,8 +942,26 @@ function toggleApplied(date, idx, checked) {{
 }}
 
 // ── 거절(제외) 시스템 ────────────────────────────────
-var REJECT_KEY = 'polyball_rejected_idxs';
+// 질문(question) 기반 — 마켓 순서/인덱스가 바뀌어도 안전 (잠금과 동일 전략)
+var REJECT_KEY = 'polyball_rejected_q';
 var _rejectTargetIdx = null;
+
+function markCardRejected(idx, reasons) {{
+  var card = document.getElementById('mcard-' + idx);
+  if (!card) return;
+  card.classList.add('rejected');
+  card.classList.remove('locked');
+  var lockBtn = card.querySelector('.lock-btn');
+  if (lockBtn) {{ lockBtn.classList.remove('locked'); lockBtn.textContent = '🔓'; }}
+  if (!card.querySelector('.rejected-overlay')) {{
+    var overlay = document.createElement('div');
+    overlay.className = 'rejected-overlay';
+    overlay.innerHTML = '<span class="rejected-label">제외됨</span><span class="rejected-reason"></span>';
+    card.appendChild(overlay);
+  }}
+  var rej = card.querySelector('.rejected-reason');
+  if (rej) rej.textContent = (reasons || []).join(' · ');
+}}
 
 function getRejectedMap() {{
   try {{ return JSON.parse(localStorage.getItem(REJECT_KEY) || '{{}}'); }}
@@ -765,13 +1024,15 @@ function confirmReject() {{
     if (rej) rej.textContent = reasons.join(' · ');
   }}
 
-  // localStorage 저장
+  // localStorage 저장 (질문 기반 키)
   var map = getRejectedMap();
   var market = MARKETS_DATA[idx] || {{}};
   var now = new Date();
   var ts = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
-  map[idx] = {{ reasons: reasons, memo: memo, rejected_at: ts }};
-  saveRejectedMap(map);
+  if (market.question) {{
+    map[market.question] = {{ reasons: reasons, memo: memo, rejected_at: ts }};
+    saveRejectedMap(map);
+  }}
 
   // 서버 저장 (로컬 모드)
   if (IS_LOCAL) {{
@@ -791,21 +1052,332 @@ function confirmReject() {{
   showToast('제외 처리됐습니다');
 }}
 
+// 비로컬(Vercel): localStorage(질문 기반)로 복원
 function restoreRejectedUI() {{
   var map = getRejectedMap();
-  Object.keys(map).forEach(function(idx) {{
-    var card = document.getElementById('mcard-' + idx);
-    if (!card) return;
-    card.classList.add('rejected');
-    var info = map[idx];
-    var reasons = info.reasons || [];
-    if (!card.querySelector('.rejected-overlay')) {{
-      var overlay = document.createElement('div');
-      overlay.className = 'rejected-overlay';
-      overlay.innerHTML = '<span class="rejected-label">제외됨</span><span class="rejected-reason">' + reasons.join(' · ') + '</span>';
-      card.appendChild(overlay);
-    }}
+  MARKETS_DATA.forEach(function(m, idx) {{
+    if (!m || !map[m.question]) return;
+    markCardRejected(idx, map[m.question].reasons || []);
   }});
+}}
+
+// 로컬 서버: 서버(/api/rejects)를 단일 출처로 복원 (인덱스 변동에 안전)
+function loadRejectsFromServer() {{
+  if (!IS_LOCAL) return;
+  fetch('/api/rejects').then(function(r) {{ return r.json(); }}).then(function(list) {{
+    if (!list) return;
+    var byQ = {{}};
+    list.forEach(function(r) {{ if (r.question) byQ[r.question] = r.rejected_reasons || []; }});
+    var map = {{}};
+    MARKETS_DATA.forEach(function(m, idx) {{
+      if (m && byQ[m.question]) {{
+        markCardRejected(idx, byQ[m.question]);
+        map[m.question] = {{ reasons: byQ[m.question] }};
+      }}
+    }});
+    saveRejectedMap(map);  // 로컬 캐시를 서버 기준으로 정리 (옛 인덱스 잔재 제거)
+  }}).catch(function(e) {{ restoreRejectedUI(); }});
+}}
+
+// ── 상세 검수 모달 ───────────────────────────────────
+var _detailIdx = null;
+
+function openDetailModal(idx) {{
+  _detailIdx = idx;
+  var m = MARKETS_DATA[idx];
+  if (!m) return;
+  var color = TYPE_COLORS[m.market_type] || '#6B7280';
+  var typeLabel = TYPE_KO[m.market_type] || m.market_type;
+  var meta = '<span class="type-badge" style="background:' + color + '">' + typeLabel + '</span>';
+  meta += '<span class="target-badge" style="background:#6B7280">' + (m.target_audience || '') + '</span>';
+  var sc = m.scores || {{}};
+  if (sc.timeliness) meta += '<span style="font-size:11px;color:#94A3B8">시의성 ' + sc.timeliness + ' · 정산 ' + sc.resolvability + ' · 공유 ' + sc.shareability + '</span>';
+  if (m.source_link) meta += '<a href="' + m.source_link + '" target="_blank" class="source-link">📎 원문</a>';
+  else if (m.source_type === 'creative') meta += '<span class="creative-badge">✨ AI 자유 제안</span>';
+  document.getElementById('detailMeta').innerHTML = meta;
+  document.getElementById('d_question').value = m.question || '';
+  document.getElementById('d_options').value = (m.options || []).join('\\n');
+  document.getElementById('d_tags').value = (m.trend_tags || []).join(', ');
+  document.getElementById('d_insight').value = m.content_insight || '';
+  document.getElementById('d_resolution').value = m.resolution_criteria || '';
+  document.getElementById('d_push').value = m.push_notification_headline || '';
+  renderParticipantSection(m);
+  document.getElementById('detailBackdrop').classList.add('open');
+}}
+
+// ── 참여자 프로파일링 섹션 ───────────────────────────
+var _recommendedAxes = [];
+
+function renderParticipantSection(m) {{
+  var published = PUBLISHED_QUESTIONS.indexOf(m.question) !== -1;
+  var statusEl = document.getElementById('psStatus');
+  var recEl = document.getElementById('psRecommend');
+  var guideEl = document.getElementById('psGuide');
+  var statsEl = document.getElementById('psStats');
+  var insightWrap = document.getElementById('psInsightWrap');
+  var insightEl = document.getElementById('psInsight');
+  insightEl.style.display = 'none'; insightEl.innerHTML = '';
+
+  // 📊 추천 분석 축 (핵심) — "어떤 지표로 묶어서 볼지" 우선순위
+  var segs = m.recommended_segments || [];
+  _recommendedAxes = segs.map(function(s) {{ return s.axis || ''; }});
+  if (segs.length) {{
+    var chips = segs.map(function(s, i) {{
+      return '<div class="ps-seg"><span class="ps-seg-rank">' + (i + 1) + '순위</span>' +
+        '<span class="ps-seg-axis">' + (s.axis || '') + '</span>' +
+        '<span class="ps-seg-reason">' + (s.reason || '') + '</span></div>';
+    }}).join('');
+    recEl.innerHTML = '<div class="ps-rec-label">📊 추천 분석 축 — 이 지표로 묶어서 보세요</div>' + chips;
+    recEl.style.display = 'block';
+  }} else {{
+    recEl.innerHTML = '<div class="ps-rec-label" style="color:#94A3B8">📊 추천 분석 축이 아직 없습니다 (동기화/재생성 시 채워집니다)</div>';
+    recEl.style.display = 'block';
+  }}
+
+  var guide = m.audience_insight_guide || '';
+  guideEl.innerHTML = guide
+    ? ('🎯 <b>관전 포인트</b> ' + guide)
+    : '';
+  guideEl.style.display = guide ? 'block' : 'none';
+
+  if (published) {{
+    statusEl.textContent = '진행중'; statusEl.className = 'ps-status live';
+    insightWrap.style.display = 'block';
+    loadParticipantStats(m.question);
+  }} else {{
+    statusEl.textContent = '초안'; statusEl.className = 'ps-status draft';
+    insightWrap.style.display = 'none';
+    statsEl.innerHTML = '<div class="ps-mock-note">📭 아직 <b>초안</b> 상태입니다. 발행(🚀)하면 실제 참여자 통계(성별·연령·지역)와 AI 분석 리포트가 여기 표시됩니다.</div>';
+  }}
+}}
+
+function loadParticipantStats(question) {{
+  var statsEl = document.getElementById('psStats');
+  if (!IS_LOCAL) {{ statsEl.innerHTML = '<div class="ps-mock-note">참여자 통계는 로컬 서버(python server.py)에서 확인 가능합니다.</div>'; return; }}
+  statsEl.innerHTML = '<div class="ps-mock-note">불러오는 중...</div>';
+  fetch('/api/participants?q=' + encodeURIComponent(question))
+    .then(function(r) {{ return r.json(); }})
+    .then(function(s) {{ renderParticipantBars(s); }})
+    .catch(function(e) {{ statsEl.innerHTML = '<div class="ps-mock-note">통계 로드 실패</div>'; }});
+}}
+
+function renderParticipantBars(s) {{
+  function isRecommended(label) {{
+    return _recommendedAxes.some(function(a) {{ return a && a.indexOf(label) !== -1; }});
+  }}
+  function block(label, obj, colors) {{
+    var keys = Object.keys(obj || {{}});
+    var rows = keys.map(function(k, i) {{
+      var v = obj[k];
+      var c = colors[i % colors.length];
+      return '<div class="ps-bar-row"><span class="ps-bar-name">' + k + '</span>' +
+        '<div class="ps-bar-track"><div class="ps-bar-fill" style="width:' + Math.max(v, 3) + '%;background:' + c + '">' + v + '%</div></div></div>';
+    }}).join('');
+    var star = isRecommended(label) ? ' <span class="ps-rec-star">⭐ 추천 축</span>' : '';
+    return '<div class="ps-block"><div class="ps-block-label">' + label + star + '</div>' + rows + '</div>';
+  }}
+  var html = '<div class="ps-mock-note">⚠️ <b>데모용 목업 데이터</b>입니다 (실제 유저 DB 연결 시 자동 교체) · 총 참여 ' + (s.total || 0) + '명</div>';
+  html += block('성별', s.gender, ['#3B82F6', '#EC4899']);
+  html += block('연령대', s.age, ['#818CF8', '#6366F1', '#4F46E5', '#4338CA']);
+  html += block('지역', s.region, ['#14B8A6', '#0EA5E9', '#06B6D4', '#0891B2', '#94A3B8']);
+  document.getElementById('psStats').innerHTML = html;
+}}
+
+function genParticipantInsight() {{
+  if (!IS_LOCAL) {{ showToast('⚠️ 분석은 로컬 서버에서만 가능합니다', 3000); return; }}
+  var idx = _detailIdx;
+  if (idx === null || idx === undefined) return;
+  var m = MARKETS_DATA[idx];
+  if (!m) return;
+  var btn = document.getElementById('psInsightBtn');
+  btn.disabled = true; btn.textContent = '분석 중... (~15초)';
+  fetch('/api/participant-insight', {{
+    method: 'POST', headers: {{'Content-Type': 'application/json'}},
+    body: JSON.stringify({{ question: m.question, options: m.options || [], guide: m.audience_insight_guide || '' }})
+  }}).then(function(r) {{ return r.json(); }}).then(function(res) {{
+    btn.disabled = false; btn.textContent = '🤖 AI 참여자 분석 리포트 생성';
+    if (!res.ok) {{ showToast('⚠️ ' + (res.message || '분석 실패'), 3000); return; }}
+    var el = document.getElementById('psInsight');
+    el.innerHTML = '<b>🤖 AI 참여자 인사이트</b><br>' + (res.insight || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    el.style.display = 'block';
+  }}).catch(function(e) {{
+    btn.disabled = false; btn.textContent = '🤖 AI 참여자 분석 리포트 생성';
+    showToast('⚠️ 서버 연결 실패', 3000);
+  }});
+}}
+
+function closeDetailModal(e) {{
+  if (e && e.target !== document.getElementById('detailBackdrop')) return;
+  document.getElementById('detailBackdrop').classList.remove('open');
+  _detailIdx = null;
+}}
+
+function publishMarket() {{
+  var idx = _detailIdx;
+  if (idx === null || idx === undefined) return;
+  var m = MARKETS_DATA[idx];
+  if (!m) return;
+  var opts = document.getElementById('d_options').value.split('\\n').map(function(s) {{ return s.trim(); }}).filter(Boolean);
+  var tags = document.getElementById('d_tags').value.split(',').map(function(s) {{ return s.trim(); }}).filter(Boolean);
+  var edited = Object.assign({{}}, m, {{
+    question: document.getElementById('d_question').value.trim(),
+    options: opts,
+    trend_tags: tags,
+    content_insight: document.getElementById('d_insight').value.trim(),
+    resolution_criteria: document.getElementById('d_resolution').value.trim(),
+    push_notification_headline: document.getElementById('d_push').value.trim()
+  }});
+  MARKETS_DATA[idx] = edited;
+  if (!IS_LOCAL) {{ showToast('⚠️ 발행은 로컬 서버(python server.py)에서만 가능합니다', 3000); return; }}
+  var btn = document.getElementById('publishBtn');
+  btn.disabled = true; btn.textContent = '발행 중...';
+  fetch('/api/publish', {{
+    method: 'POST', headers: {{'Content-Type': 'application/json'}}, body: JSON.stringify(edited)
+  }}).then(function(r) {{ return r.json(); }}).then(function(res) {{
+    btn.disabled = false; btn.textContent = '🚀 최종 발행/배포';
+    if (res.ok) {{
+      showToast('🚀 발행 완료! 참여자 분석이 활성화됐어요 (총 ' + res.total + '건)');
+      // 발행 즉시 '진행중'으로 전환 → 참여자 통계/AI 리포트 활성화
+      if (PUBLISHED_QUESTIONS.indexOf(edited.question) === -1) PUBLISHED_QUESTIONS.push(edited.question);
+      renderParticipantSection(edited);
+    }}
+    else {{ showToast('⚠️ 발행 실패'); }}
+  }}).catch(function(e) {{ btn.disabled = false; btn.textContent = '🚀 최종 발행/배포'; showToast('⚠️ 서버 연결 실패'); }});
+}}
+
+// ── 수동 발행 / 자동 키워드 ──────────────────────────
+function generateFromKeyword(keyword, btn) {{
+  keyword = (keyword || '').trim();
+  if (!keyword) {{ showToast('키워드를 입력하세요'); return; }}
+  if (!IS_LOCAL) {{ showToast('⚠️ AI 생성은 로컬 서버(python server.py)에서만 가능합니다', 3000); return; }}
+  var mainBtn = document.getElementById('manualGenBtn');
+  if (btn) {{ btn.disabled = true; btn.textContent = '생성 중...'; }}
+  if (mainBtn) mainBtn.disabled = true;
+  showToast('🤖 "' + keyword + '" 실시간 조사 중... (~30초)', 6000);
+  fetch('/api/generate', {{
+    method: 'POST', headers: {{'Content-Type': 'application/json'}}, body: JSON.stringify({{keyword: keyword}})
+  }}).then(function(r) {{ return r.json(); }}).then(function(res) {{
+    if (res.ok) {{
+      showToast('✅ ' + res.count + '개 생성됨! 대시보드로 이동합니다...', 2000);
+      setTimeout(function() {{ window.location.reload(); }}, 1800);
+    }} else {{
+      showToast('⚠️ ' + (res.message || '생성 실패'), 3500);
+      if (btn) {{ btn.disabled = false; btn.textContent = '즉시 마켓 생성'; }}
+      if (mainBtn) mainBtn.disabled = false;
+    }}
+  }}).catch(function(e) {{
+    showToast('⚠️ 서버 연결 실패 (python server.py 확인)', 3500);
+    if (btn) {{ btn.disabled = false; btn.textContent = '즉시 마켓 생성'; }}
+    if (mainBtn) mainBtn.disabled = false;
+  }});
+}}
+
+function genFromAuto(i, btn) {{
+  var k = AUTO_KEYWORDS[i];
+  if (k) generateFromKeyword(k.keyword, btn);
+}}
+
+function renderAutoKeywords() {{
+  var box = document.getElementById('autoKeywordList');
+  var cnt = document.getElementById('autoKwCount');
+  if (!box) return;
+  if (!AUTO_KEYWORDS || !AUTO_KEYWORDS.length) {{
+    box.innerHTML = '<p class="empty-state">자동 키워드 없음 (동기화 후 표시)</p>';
+    return;
+  }}
+  if (cnt) cnt.textContent = '(' + AUTO_KEYWORDS.length + '개)';
+  box.innerHTML = AUTO_KEYWORDS.map(function(k, i) {{
+    return '<div class="kw-row">' +
+      '<span class="kw-domain">' + (k.domain || '') + '</span>' +
+      '<span class="kw-name">' + (k.keyword || '') + '</span>' +
+      '<button class="kw-gen-btn" onclick="genFromAuto(' + i + ', this)">즉시 마켓 생성</button>' +
+      '</div>';
+  }}).join('');
+}}
+
+// ── 제외(거절) 이력 탭 ───────────────────────────────
+var REASON_LABELS = ['이미 지난 이슈', '결과가 이미 알려진 내용', '마켓 매력도 낮음', '타겟과 맞지 않음', '선택지가 부적절', '정보가 부정확함', '민감한 주제', '유사 마켓 이미 존재'];
+var _rejectsCache = REJECTS_DATA || [];
+var _lastImprove = '';
+
+function loadRejects() {{
+  if (IS_LOCAL) {{
+    fetch('/api/rejects').then(function(r) {{ return r.json(); }}).then(function(list) {{
+      _rejectsCache = list || [];
+      renderRejects(_rejectsCache);
+    }}).catch(function(e) {{ renderRejects(_rejectsCache); }});
+  }} else {{
+    renderRejects(_rejectsCache);
+  }}
+}}
+
+function renderRejects(list) {{
+  var total = document.getElementById('rejectTotal');
+  if (total) total.textContent = list.length ? ('누적 ' + list.length + '건') : '';
+  var listCount = document.getElementById('rejectListCount');
+  if (listCount) listCount.textContent = '(' + list.length + '건)';
+
+  // 사유 카테고리 집계 (순수 계산 — API 호출 없음)
+  var counts = {{}};
+  REASON_LABELS.forEach(function(lbl) {{ counts[lbl] = 0; }});
+  list.forEach(function(r) {{
+    (r.rejected_reasons || []).forEach(function(reason) {{
+      if (counts.hasOwnProperty(reason)) counts[reason]++;
+    }});
+  }});
+  var pills = REASON_LABELS.filter(function(lbl) {{ return counts[lbl] > 0; }})
+    .sort(function(a, b) {{ return counts[b] - counts[a]; }})
+    .map(function(lbl) {{ return '<span class="reject-count-pill">' + lbl + ' <b>' + counts[lbl] + '</b></span>'; }})
+    .join('');
+  var cbox = document.getElementById('rejectCounts');
+  if (cbox) cbox.innerHTML = pills || '<span style="font-size:12px;color:#94A3B8">집계할 사유 없음</span>';
+
+  // 목록
+  var box = document.getElementById('rejectList');
+  if (!box) return;
+  if (!list.length) {{ box.innerHTML = '<p class="empty-state">제외된 마켓이 없습니다</p>'; return; }}
+  box.innerHTML = list.map(function(r) {{
+    var reasons = (r.rejected_reasons || []).map(function(x) {{ return '<span class="rj-reason">' + x + '</span>'; }}).join('');
+    var memo = r.rejected_memo ? '<span class="rj-memo">memo: ' + r.rejected_memo + '</span>' : '';
+    var date = r.rejected_at ? '<span class="rj-date">' + r.rejected_at + '</span>' : '';
+    return '<div class="rj-row">' +
+      '<div class="rj-q">' + (r.question || '') + '</div>' +
+      '<div class="rj-reasons">' + reasons + ' ' + memo + date + '</div>' +
+      '</div>';
+  }}).join('');
+}}
+
+function analyzeRejects() {{
+  if (!IS_LOCAL) {{ showToast('⚠️ 분석은 로컬 서버(python server.py)에서만 가능합니다', 3000); return; }}
+  var btn = document.getElementById('analyzeBtn');
+  btn.disabled = true; btn.textContent = '분석 중... (~20초)';
+  showToast('🤖 거절 패턴 분석 중...', 5000);
+  fetch('/api/analyze-rejects', {{ method: 'POST', headers: {{'Content-Type': 'application/json'}}, body: '{{}}' }})
+    .then(function(r) {{ return r.json(); }}).then(function(res) {{
+      btn.disabled = false; btn.textContent = '🤖 거절 패턴 분석 & 프롬프트 개선안 도출';
+      if (!res.ok) {{ showToast('⚠️ ' + (res.message || '분석 실패'), 3500); return; }}
+      var a = res.analysis || {{}};
+      var issues = (a.top_issues || []).map(function(s) {{ return '<li>' + s + '</li>'; }}).join('');
+      _lastImprove = (a.prompt_improvements || []).join('\\n\\n');
+      var html = '<h4>📋 진단 (거절 ' + res.count + '건 기준)</h4>' +
+        '<div class="diag">' + (a.diagnosis || '') + '</div>' +
+        '<h4>⚠️ 주요 문제 패턴</h4><ul>' + issues + '</ul>' +
+        '<h4>✏️ 프롬프트 개선안 (자동 적용 안 함 · 검토 후 수동 반영)</h4>' +
+        '<div class="improve-box"><button class="copy-btn" onclick="copyImprove(this)">복사</button>' +
+        _lastImprove.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
+      var rbox = document.getElementById('analyzeResult');
+      rbox.innerHTML = html; rbox.style.display = 'block';
+      showToast('✅ 분석 완료 — 자동 적용하지 않습니다. 검토 후 반영하세요', 3500);
+    }}).catch(function(e) {{
+      btn.disabled = false; btn.textContent = '🤖 거절 패턴 분석 & 프롬프트 개선안 도출';
+      showToast('⚠️ 서버 연결 실패', 3000);
+    }});
+}}
+
+function copyImprove(btn) {{
+  if (navigator.clipboard) navigator.clipboard.writeText(_lastImprove);
+  btn.textContent = '복사됨';
+  setTimeout(function() {{ btn.textContent = '복사'; }}, 1500);
 }}
 
 // ── 초기화 ───────────────────────────────────────────
@@ -823,8 +1395,14 @@ function init() {{
     }}
   }} catch(e) {{ console.warn('lock restore error:', e); }}
 
-  // 거절 상태 복원
-  try {{ restoreRejectedUI(); }} catch(e) {{ console.warn('reject restore error:', e); }}
+  // 거절 상태 복원 (로컬은 서버 우선, Vercel은 localStorage)
+  try {{
+    if (IS_LOCAL) loadRejectsFromServer();
+    else restoreRejectedUI();
+  }} catch(e) {{ console.warn('reject restore error:', e); }}
+
+  // 자동 키워드 리스트 렌더
+  try {{ renderAutoKeywords(); }} catch(e) {{ console.warn('auto keyword render error:', e); }}
 
   // 히스토리 첫 날짜 자동 로드
   try {{
