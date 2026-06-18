@@ -12,12 +12,41 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
 import argparse
 import json
 import os
+import subprocess
 import webbrowser
 from datetime import datetime
 
 import engine
 from processor import filter_and_sort, deduplicate_markets
 from dashboard import build_dashboard
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def deploy_to_git():
+    """동기화 결과(index.html)를 git push → Vercel 자동 배포.
+    변경 없으면 스킵, 실패해도 동기화 자체는 깨지지 않음."""
+    print("[ 4단계 ] 배포 (git push → Vercel)")
+    files = ["index.html", "dashboard.html"]
+    # Windows cp949 콘솔에서 git의 UTF-8(한글) 출력 디코딩 깨짐 방지
+    gk = {"cwd": BASE_DIR, "capture_output": True, "text": True,
+          "encoding": "utf-8", "errors": "replace"}
+    try:
+        subprocess.run(["git", "add"] + files, check=True, **gk)
+        # 스테이징된 변경이 없으면 returncode 0 → 스킵
+        diff = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=BASE_DIR)
+        if diff.returncode == 0:
+            print("  → 변경사항 없음, 배포 스킵")
+            return
+        msg = f"sync: {datetime.now().strftime('%Y-%m-%d %H:%M')} 마켓 갱신 (자동 배포)"
+        subprocess.run(["git", "commit", "-m", msg], check=True, **gk)
+        push = subprocess.run(["git", "push", "origin", "main"], **gk)
+        if push.returncode == 0:
+            print("  → 배포 완료: GitHub push 성공 (Vercel 자동 반영 ~1-2분)")
+        else:
+            print(f"  → 푸시 실패(동기화는 정상): {(push.stderr or '')[-300:]}")
+    except Exception as e:
+        print(f"  → 배포 단계 오류(동기화는 정상): {e}")
 
 
 def load_locked_markets():
@@ -60,6 +89,7 @@ def main():
     parser.add_argument("--max-keywords", type=int, default=20, help="생성에 쓸 키워드 최대 개수 (기본: 20)")
     parser.add_argument("--per-keyword", type=int, default=3, help="키워드당 생성 마켓 최대 개수 (기본: 3)")
     parser.add_argument("--creative", type=int, default=8, help="AI 자유 제안 마켓 개수 (기본: 8)")
+    parser.add_argument("--no-push", action="store_true", help="동기화 후 git push(배포) 건너뛰기")
     parser.add_argument("--open", action="store_true", help="완료 후 대시보드 자동 열기")
     args = parser.parse_args()
 
@@ -127,6 +157,10 @@ def main():
 
     print("[ 3단계 ] 대시보드 생성")
     path = build_dashboard()
+
+    # 동기화 결과를 git push → Vercel 자동 배포 (--no-push로 끌 수 있음)
+    if not args.no_push:
+        deploy_to_git()
 
     elapsed = (datetime.now() - start).seconds
     print(f"\n{'='*50}")
